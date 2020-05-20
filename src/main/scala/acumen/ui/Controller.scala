@@ -56,10 +56,15 @@ class Controller extends DaemonActor {
     }
   }
 
+  var progressTime = -1
   protected[ui] def updateProgress(s: GStore) = {
     val time = getTime(s)
     val endTime = getEndTime(s)
-    ui.statusZone.setProgress((time * 100 / endTime).toInt)
+    if ((time * 100 / endTime).toInt != progressTime) {
+      progressTime = (time * 100 / endTime).toInt
+      Main.jsonProgress.write("[PROGRESS]" + ujson.write(ujson.Obj("event" -> "progress", "data" -> ujson.Num(progressTime))) + "[/PROGRESS]\n")
+      Main.jsonProgress.flush()
+    }
   }
 
   /* ------ actor logic ------------ */

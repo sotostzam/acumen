@@ -2,45 +2,24 @@
 package acumen
 package ui
 
-import java.net.{InetAddress, URI}
+import java.net.InetAddress
 
 import tl._
 import interpreter._
 import util.System.shortcutMask
-import java.lang.Thread
 
 import scala.actors._
-import collection.JavaConversions._
-import java.awt.Font
-import java.awt.Color
-import java.awt.RenderingHints
-import java.awt.GraphicsEnvironment
 import java.awt.Desktop
-import java.awt.Font
-import java.awt.GraphicsEnvironment
 import java.awt.KeyboardFocusManager
 import java.awt.KeyEventDispatcher
-import java.awt.RenderingHints
 import java.awt.Toolkit
 import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent._
-import java.awt.event.KeyEvent.{VK_CLOSE_BRACKET => VK_RBRACKET, VK_OPEN_BRACKET => VK_LBRACKET}
-import java.awt.event.InputEvent._
 import java.io._
 import javax.swing._
 
-import org.fife.ui.rtextarea.{RTextArea, RTextScrollPane}
-
-import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem, Component, Dialog, Dimension, FileChooser, FlowPanel, Frame, Label, MainFrame, Menu, MenuBar, MenuItem, Orientation, Publisher, RadioMenuItem, ScrollPane, Separator, SimpleSwingApplication, SplitPane, Swing, TabbedPane, Table, TextField}
+import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem, Component, Dialog, Dimension, FileChooser, FlowPanel, MainFrame, Menu, MenuBar, MenuItem, Orientation, Publisher, RadioMenuItem, ScrollPane, Separator, SimpleSwingApplication, SplitPane, Swing, TabbedPane, Table}
 import swing.event._
-import scala.Boolean
-import acumen.interpreters.{enclosure, imperative2012}
-import acumen.interpreters.{reference2012, reference2013}
-import acumen.interpreters.enclosure.ivp.PicardSolver
-import acumen.interpreters.enclosure.ivp.LohnerSolver
-import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
-import acumen.interpreters.enclosure.event.pwl.PWLEventEncloser
-import acumen.interpreters.enclosure.event.tree.TreeEventEncloser
 import acumen.{SemanticsImpl => S}
 import acumen.ui.threeD._
 
@@ -65,10 +44,120 @@ class App extends SimpleSwingApplication {
   
   def setSemantics(si: SemanticsImpl[Interpreter]) = {
     Main.defaultSemantics = si
-    ui.codeArea.updateCompletionProvider(si.interpreter())
     Logger.log("Selected the \"" + si.descr + "\" semantics.")
   }
-  
+
+  // Create a special actor to listen to events Acumen's web interface
+  scala.actors.Actor.actor {
+    while (true) {
+      if (Main.webInterface.inputStream.ready()) {
+        val input = Main.webInterface.inputStream.readLine
+        deserializeSocketInput(input)
+      }
+      Thread.sleep(100)
+    }
+  }
+
+  def deserializeSocketInput(input: String): Unit = {
+    try {
+      val jsonString = ujson.read(input)
+      jsonString(0)("type").str match {
+        case "action" =>
+          jsonString(0)("action").str match {
+            case "Play" =>
+              runSimulation()
+            case "Pause" =>
+              controller ! Pause
+            case "Step" =>
+              stepSimulation()
+            case "Stop" =>
+              controller ! Stop
+              stopSimulation()
+            case "SelectFile" =>
+              codeArea.loadFile(filetree.getFile(jsonString(0)("file").num.toInt))
+            case "newFile" =>
+              codeArea.newFile
+            case "openFile" =>
+              codeArea.openFile(codeArea.currentDir)
+            case "saveFile" =>
+              codeArea.saveFile(updateCurrentFile = jsonString(0)("updateCurrent").bool)
+            case "saveFileAs" =>
+              codeArea.saveFileAs(updateCurrentFile = jsonString(0)("updateCurrent").bool)
+            case "recover" =>
+              codeArea.openFile(Files.autoSavedDir)
+            case "Exit" =>
+              exit()
+            case "simulatorFields" =>
+              if (jsonString(0)("value").str.equals("true")) plotView.toggleSimulator(true)
+              else plotView.toggleSimulator(false)
+            case "childCount" =>
+              if (jsonString(0)("value").str.equals("true")) plotView.toggleNextChild(true)
+              else plotView.toggleNextChild(false)
+            case "rngSeeds" =>
+              if (jsonString(0)("value").str.equals("true")) plotView.toggleSeeds(true)
+              else plotView.toggleSeeds(false)
+            case "normalization" =>
+              toggleNormalization()
+            /* Semantics Changes */
+            case "setSemantics" =>
+              jsonString(0)("semantics").str match {
+                case "reference2015"          => setSemantics(S.Ref2015)
+                case "reference2014"          => setSemantics(S.Ref2014)
+                case "reference2013"          => setSemantics(S.Ref2013)
+                case "reference2012"          => setSemantics(S.Ref2012)
+                case "optimized2015"          => setSemantics(S.Opt2015)
+                case "optimized2014"          => setSemantics(S.Opt2014)
+                case "optimized2013"          => setSemantics(S.Opt2013)
+                case "optimized2012"          => setSemantics(S.Opt2012)
+                case "parallel2012"           => promptForNumberOfThreads
+                case "pwlHybridSolver"        => setSemantics(S.Enclosure(S.PWL,contraction))
+                case "eventTreeHybridSolver"  => setSemantics(S.Enclosure(S.EVT,contraction))
+                case "enclosure2015"          => setSemantics(S.Enclosure2015(contraction))
+              }
+            case "contraction" =>
+              toggleContraction()
+            /* Server Actions */
+            case "startServer" =>
+              startServer()
+            case "stopServer" =>
+              stopServer()
+            case "resetDevice" =>
+              resetDevice()
+          }
+        case "btnAction" =>
+          jsonString(0)("action").str match {
+            case "traceTab" =>
+              selectedView = viewsCollection(1)
+              if (selectedView.equals(viewsCollection(1)) && App.ui.controller.model != null) {
+                plotView.plotPanel.tableI.enabled = true
+                plotView.plotPanel.plotter ! plot.Refresh
+              }
+              else {
+                plotView.plotPanel.tableI.enabled = false
+              }
+          }
+        case "event" =>
+          jsonString(0)("event").str match {
+            case "jsReady" =>
+              filetree.serializeFileTree(Files.currentDir)      // Serialize fileTree
+              codeArea.sendInitCodeArea()                       // Serialize codeArea
+              constructSemanticsItems()                         // Serialize semantics menu
+              if (Main.extraPasses.contains("normalize")) { Main.webInterface.socketSend(ujson.write(ujson.Obj("event" -> "enableNormalize"))) }
+              Main.webInterface.socketSend(ujson.write(ujson.Obj("event" -> "state", "state" -> "appReady")))
+          }
+        case "codeUpdate" =>
+          codeArea.updateCodeText(jsonString(0)("text").str)
+          codeArea.setEdited
+        case _ =>
+          println("Unrecognized json")
+      }
+    }
+    catch {
+      case x: Exception =>  //println(x.getCause.toString)
+        println("Json error: " + input)
+    }
+  }
+
   // Create a special actor to listen to events from other threads
   // runs on the EDT
 
@@ -82,25 +171,34 @@ class App extends SimpleSwingApplication {
       Supervisor.watch(this, "Main UI", { restart })
       loop {
         react {
-          case Progress(p) => statusZone.setProgress(p)
           case ConsoleMsg(instr) => console.append(instr)
 
           case EXIT => exit
 
           case SendInit => 
             withErrorReporting {
-              interpreter = InterpreterCntrl(Main.defaultSemantics,Some(codeArea.textArea.getText))
+              interpreter = InterpreterCntrl(Main.defaultSemantics,Some(codeArea.codeText))
               if (Main.defaultSemantics != interpreter.semantics) {
                 warnSemanticsChange(Main.defaultSemantics, interpreter.semantics)
                 setSemantics(interpreter.semantics)
-                selectMenuItemFromSemantics()
               }
-              controller ! Init(codeArea.textArea.getText, codeArea.currentDir, interpreter)
+              controller ! Init(codeArea.codeText, codeArea.currentDir, interpreter)
             }
 
           case msg: Event =>
             //println("Publishing This Msg: " + msg)
             publish(msg)
+            msg match {
+              case st: State =>
+                st match {
+                  case _:App.Ready =>
+                    Main.webInterface.socketSend(ujson.write(ujson.Obj("event" -> "state", "state" -> st.toString)))
+                  case _:App.Playing =>
+                    Main.webInterface.socketSend(ujson.write(ujson.Obj("event" -> "state", "state" -> st.toString)))
+                  case _ =>
+                }
+              case _ =>
+            }
 
           case msg => println("Unknown Msg in GM: " + msg)
         }
@@ -117,7 +215,52 @@ class App extends SimpleSwingApplication {
 
   @volatile var modelFinished : Boolean = false
 
+  val viewsCollection = Array("PLOT_IDX", "TABLE_IDX", "THREED_IDX")
+  var selectedView = viewsCollection(0)
+
+  /* Semantics Items */
+  private val traditionalSemantics = Seq(
+    SemanticsItem("reference2015", "2015 Reference", isEnclosure = false, selected = false, enabled = true),
+    SemanticsItem("optimized2015", "2015 Optimized", isEnclosure = false, selected = true, enabled = true))
+  private val enclosureSemantics = Seq(
+    SemanticsItem("enclosure2015"        , "2015 Enclosure", isEnclosure = true, selected = false, enabled = true),
+    SemanticsItemSeparator,
+    SemanticsItem("pwlHybridSolver"      , "2013 PWL"      , isEnclosure = true, selected = false, enabled =Main.enableOldSemantics),
+    SemanticsItem("eventTreeHybridSolver", "2013 EVT"      , isEnclosure = true, selected = false, enabled =Main.enableOldSemantics))
+  private val deprecatedSemantics = Seq(
+    SemanticsItem("reference2014", "2014 Reference", isEnclosure = false, selected = false, enabled = Main.enableOldSemantics),
+    SemanticsItem("optimized2014", "2014 Optimized", isEnclosure = false, selected = false, enabled = Main.enableOldSemantics),
+    SemanticsItemSeparator,
+    SemanticsItem("reference2013", "2013 Reference", isEnclosure = false, selected = false, enabled = Main.enableOldSemantics),
+    SemanticsItem("optimized2013", "2013 Optimized", isEnclosure = false, selected = false, enabled = Main.enableOldSemantics),
+    SemanticsItemSeparator,
+    SemanticsItem("reference2012", "2012 Reference", isEnclosure = false, selected = false, enabled = Main.enableOldSemantics),
+    SemanticsItem("optimized2012", "2012 Optimized", isEnclosure = false, selected = false, enabled = Main.enableOldSemantics),
+    SemanticsItem("parallel2012" , "2012 Parallel" , isEnclosure = false, selected = false, enabled = Main.enableOldSemantics))
+  private val semantics = List(traditionalSemantics, enclosureSemantics, deprecatedSemantics)
   //**************************************
+
+  private def constructSemanticsItems(): Unit = {
+    val semanticsJson = ujson.Arr(ujson.Obj("action" -> "populateSemantics"))
+    for (group <- semantics.indices) {
+      val semanticsGroup = ujson.Obj()
+      val semanticsData = ujson.Arr()
+      for (item <- semantics(group)) {
+        item match {
+          case SemanticsItem(a, b, c, d, e) =>
+            if (e) semanticsData.arr.append(ujson.Obj("id" -> a, "name" -> b, "isEnclosure" -> c, "selected" -> d))
+          case SemanticsItemSeparator =>
+            semanticsData.arr.append(ujson.Obj("id" -> "separator"))
+        }
+      }
+      if (group==0) semanticsGroup.obj.put("traditional", semanticsData)
+      else if (group==1) semanticsGroup.obj.put("enclosure", semanticsData)
+      else semanticsGroup.obj.put("deprecated", semanticsData)
+      semanticsJson.arr.append(semanticsGroup.value)
+    }
+    Main.webInterface.socketSend(ujson.write(semanticsJson))
+  }
+
   //**************************************
 
   /* ----- UI setup ------- */
@@ -125,50 +268,10 @@ class App extends SimpleSwingApplication {
   private val NONE = VK_UNDEFINED
   /* Reusable actions */
 
-  private val playAction                      = mkAction(    "Run",                                 VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val pauseAction                     = mkAction(    "Pause",                               VK_R, VK_G,       upperButtons.bPlay.doClick)
-  private val stepAction                      = mkAction(    "Step",                                VK_T, VK_B,       upperButtons.bStep.doClick)
-  private val stopAction                      = mkAction(    "Stop",                                VK_S, VK_T,       upperButtons.bStop.doClick)
-  private val newAction                       = mkAction(    "New",                                 VK_N, VK_N,       codeArea.newFile)
-  private val openAction                      = mkAction(    "Open",                                VK_O, VK_O,       codeArea.openFile(codeArea.currentDir))
-  private val saveAction                      = mkAction(    "Save",                                VK_S, VK_S,       codeArea.saveFile())
-  private val saveAsAction                    = mkActionMask("Save As",                             VK_A, VK_S,       shortcutMask | SHIFT_MASK, codeArea.saveFileAs())
-  private val recoverAction                   = mkAction(    "Recover",                             VK_R, VK_R,       codeArea.openFile(Files.autoSavedDir))
-  private val exportTableAction               = new Action(  "Export Table"){ mnemonic =            VK_E; def apply = exportTable()}
-  private val exitAction                      = mkAction(    "Exit",                                VK_E, VK_Q,       exit())
-  private val cutAction                       = mkAction(    "Cut",                                 VK_T, VK_X,       codeArea.textArea.cut)
-  private val copyAction                      = mkAction(    "Copy",                                VK_C, VK_C,       if (ui.console.peer.getSelectedIndex != -1) ui.console.copySelection else codeArea.textArea.copyAsRtf)
-  private val pasteAction                     = mkAction(    "Paste",                               VK_P, VK_V,       codeArea.textArea.paste)
-  private val selectAllAction                 = mkAction(    "Select All",                          VK_A, VK_A,       codeArea.textArea.selectAll)
-  private val findReplaceAction               = mkAction(    "Find",                                VK_F, VK_F,       toggleFindReplaceToolbar)
-  private val increaseFontSizeAction          = mkAction(    "Enlarge Font",                        VK_I, VK_PLUS,    codeArea increaseFontSize)
-  private val decreaseFontSizeAction          = mkAction(    "Reduce Font",                         VK_D, VK_MINUS,   codeArea decreaseFontSize)
-  private val resetFontSizeAction             = mkAction(    "Reset Font",                          VK_R, VK_0,       codeArea resetFontSize)
-  private val increaseIndentAction            = mkAction(    "Increase Indentation",                VK_N, VK_RBRACKET,codeArea increaseIndent) // Key binding set in CodeArea
-  private val decreaseIndentAction            = mkAction(    "Decrease Indentation",                VK_E, VK_LBRACKET,codeArea decreaseIndent) // Key binding set in CodeArea
-  private val showLineNumbersAction           = mkAction(    "Line Numbers",                        VK_L, VK_L,       toggleLineNumbers)
   private val plotStyleLinesAction            = new Action(  "Lines")       { mnemonic =            VK_L; def apply = plotView.setPlotStyle(plot.Lines()) }
   private val plotStyleDotsAction             = new Action(  "Dots")        { mnemonic =            VK_D; def apply = plotView.setPlotStyle(plot.Dots()) }
   private val plotStyleBothAction             = new Action(  "Both")        { mnemonic =            VK_B; def apply = plotView.setPlotStyle(plot.Both()) }
-  private val reference2015Action             = mkActionMask("2015 Reference",                      VK_R, VK_R,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2015))
-  private val reference2014Action             = mkActionMask("2014 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2014))
-  private val reference2013Action             = mkActionMask("2013 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2013))
-  private val reference2012Action             = mkActionMask("2012 Reference",                      VK_R, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Ref2012))
-  private val optimized2015Action             = mkActionMask("2015 Optimized",                      VK_O, VK_O,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2015))
-  private val optimized2014Action             = mkActionMask("2014 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2014))
-  private val optimized2013Action             = mkActionMask("2013 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2013))
-  private val optimized2012Action             = mkActionMask("2012 Optimized",                      VK_O, NONE,       shortcutMask | SHIFT_MASK, setSemantics(S.Opt2012)) 
-  private val parallel2012Action              = mkActionMask("2012 Parallel",                       VK_P, NONE,       shortcutMask | SHIFT_MASK, promptForNumberOfThreads)
-  private val pwlHybridSolverAction           = mkActionMask("2013 PWL",                            VK_L, VK_L,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.PWL,contraction))) 
-  private val eventTreeHybridSolverAction     = mkActionMask("2013 EVT",                            VK_T, VK_T,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure(S.EVT,contraction)))
-  private val enclosure2015Action             = mkActionMask("2015 Enclosure",                      VK_5, VK_D,       shortcutMask | SHIFT_MASK, setSemantics(S.Enclosure2015(contraction)))
-  private val startSeverAction                = mkAction(    "Start Server",                        NONE, NONE,       startServer())
-  private val stopServerAction                = mkAction(    "Stop Server",                         NONE, NONE,       stopServer())
-  private val resetDeviceNum                  = mkAction(    "Reset Device",                        NONE, NONE,       resetDevice())
-  private val contractionAction               = mkActionMask("Contraction",                         VK_C, VK_C,       shortcutMask | SHIFT_MASK, toggleContraction())
-  private val normalizeAction                 = mkAction(    "Normalize (to H.A.)",                 VK_N, NONE,       toggleNormalization())
   private val manualAction                    = mkAction(    "Reference Manual",                    VK_M, VK_F1,      manual())
-  private val bugReportAction                 = mkAction(    "Bugs",                                NONE, NONE,       bugReport())
   private val aboutAction                     = new Action(  "About")       { mnemonic =            VK_A; def apply = about() }
   private val licenseAction                   = new Action(  "License")     { mnemonic =            VK_L; def apply = license() }
   
@@ -210,91 +313,30 @@ class App extends SimpleSwingApplication {
   
   /* 1. left pane */
   /* 1.1 upper pane */
-  val upperButtons = new ControlButtons
 
   val codeArea = new CodeArea
-  val codeAreaScrollPane = new RTextScrollPane(codeArea.textArea, false)
-  codeAreaScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED)
-  
-  def toggleLineNumbers = codeAreaScrollPane.setLineNumbersEnabled(!codeAreaScrollPane.getLineNumbersEnabled)
   def fixed3DRatio = disable3DRatioItem.selected
-  def toggleFindReplaceToolbar = {
-    codeArea.findReplaceToolBar.setVisible(!codeArea.findReplaceToolBar.isVisible)
-    if (codeArea.findReplaceToolBar.isVisible) codeArea.searchField.requestFocus 
-    else codeArea.textArea.requestFocus
-  }
-  
-  val codePanel = new BorderPanel {
-    add(Component.wrap(codeAreaScrollPane), BorderPanel.Position.Center)
-    add(Component.wrap(codeArea.findReplaceToolBar), BorderPanel.Position.South)
-  }
-
-  val statusZone = new StatusZone
-  val upperBottomPane = new BoxPanel(Orientation.Horizontal) {
-    contents += upperButtons
-    contents += statusZone
-  }
-  
-  val upperPane = new BorderPanel {
-    add(codeArea.filenameLabel, BorderPanel.Position.North)
-    add(codePanel, BorderPanel.Position.Center)  
-    add(upperBottomPane, BorderPanel.Position.South)
-  }
 
   /* 1.2 lower pane */
   val console = new tl.Console
-  val fileBrowser = new FileBrowser(Files.currentDir, codeArea)
-  fileBrowser.fileTree.peer.addTreeSelectionListener(codeArea)
-  codeArea.addPathChangeListener(fileBrowser.fileTree)
+  val filetree = new tl.FileTree
   
   val consolePage = new TabbedPane.Page("Console", new BorderPanel {
     add(new ScrollPane(console), BorderPanel.Position.Center)
   })
   
   val lowerPane = new BorderPanel {
-    // Synch button
-    val synchButton = new JCheckBox()
-    synchButton.setAction(new AbstractAction("Synch File Browser and Editor") {
-      override def actionPerformed(e: java.awt.event.ActionEvent) {
-        Main.synchEditorWithBrowser = !Main.synchEditorWithBrowser
-        if (Main.synchEditorWithBrowser)
-          codeArea.currentFile match {
-            case Some(file) => fileBrowser.fileTree.focus(file)
-            case None => fileBrowser.fileTree.refresh
-          }
-      }
-    })
-    synchButton.setSelected(Main.synchEditorWithBrowser)
-    val toolbar = new JToolBar()
-    toolbar.setFloatable(false)
-    synchButton.setFocusable(false)
-    synchButton.setBorderPainted(false)
-    toolbar.add(synchButton)
     
     // Console / File Browser 
     val tabs = new TabbedPane {
       pages += consolePage
-      pages += new TabbedPane.Page("File Browser", fileBrowser)
       preferredSize = new Dimension(DEFAULT_HEIGHT / 4, preferredSize.width)
     }
 
-    add(Component.wrap(toolbar), BorderPanel.Position.North)
     add(tabs, BorderPanel.Position.Center)
   }
-  
-
-  val leftPane =
-    new SplitPane(Orientation.Horizontal, upperPane, lowerPane) {
-      oneTouchExpandable = true
-      resizeWeight = 1.0
-    }
 
   /* 2 right pane */
-  val traceTable = new Table {
-    //model = traceModel
-    autoResizeMode = Table.AutoResizeMode.Off
-  }
-
   val plotView = new plot.PlotTab
   val pointedView = new plot.PointedView(plotView)
 
@@ -304,17 +346,12 @@ class App extends SimpleSwingApplication {
     add(plotView, BorderPanel.Position.Center)
   }
 
-  val traceTab = new ScrollPane(traceTable)
-
   var threeDtab = new ThreeDTab(controller)
 
   val views = new TabbedPane {
     assert(pages.size == 0)
     pages += new TabbedPane.Page("Plot", plotTab)
     val PLOT_IDX = pages.last.index
-
-    pages += new TabbedPane.Page("Table", traceTab)
-    val TABLE_IDX = pages.last.index
 
     pages += new TabbedPane.Page("_3D", threeDtab)
     val THREED_IDX = pages.last.index
@@ -340,9 +377,9 @@ class App extends SimpleSwingApplication {
 
   /* main component */
   val body =
-    new SplitPane(Orientation.Vertical, leftPane, views) {
+    new SplitPane(Orientation.Vertical, lowerPane, views) {
       oneTouchExpandable = true
-      resizeWeight = 0.2
+      resizeWeight = 0.4
     }
 
   /* menu bar */
@@ -369,22 +406,7 @@ class App extends SimpleSwingApplication {
     mnemonic = m; accelerator = if (a != NONE) Some(KeyStroke.getKeyStroke(a, aMask)) else None
     def apply() = act
   } 
- 
-  private val playMenuItem = new MenuItem(playAction) 
-  private val stepMenuItem = new MenuItem(stepAction)
-  private val stopMenuItem = new MenuItem(stopAction)
 
-  private val startserverItem = new RadioMenuItem("Start Server") {selected = false; action = startSeverAction}
-  private val resetDeviceItem = new MenuItem("Reset Device")  {action = resetDeviceNum}
-  private val stopserverItem  = new MenuItem("Stop Server")  {action = stopServerAction}
-  private val serverLinkItem  = new Menu("Server Link"){
-    val url = IPADDRESS + ":8000/index"
-    val rb1 = new MenuItem(url){
-      action = new Action(url){ def apply() = Desktop.getDesktop.browse(new java.net.URI("http://" + url)) }
-    }
-    contents ++= Seq(rb1)
-    new ButtonGroup(rb1)
-  }
   private val disable3DRatioItem = new RadioMenuItem("Disable") {
     action = new Action("Disable") {
       def apply() = {
@@ -437,64 +459,8 @@ class App extends SimpleSwingApplication {
   def getStartAnaglyph = false
   
   val bar = new MenuBar {
-    contents += new Menu("File") {
-      mnemonic = Key.F
-      contents += new MenuItem(newAction)     { enableWhenStopped(this) }
-      contents += new MenuItem(openAction)    { enableWhenStopped(this) }
-      contents += new MenuItem(saveAction)
-      contents += new MenuItem(saveAsAction)  
-      contents += new MenuItem(exportTableAction) { enableWhenStopped(this) }
-      contents += new MenuItem(recoverAction) { enableWhenStopped(this) }
-      contents += new MenuItem(exitAction)
-    }
-    
-    contents += new Menu("Edit") {
-      mnemonic = Key.E
-      contents += new MenuItem(new Action("Undo"){
-        override lazy val peer = RTextArea getAction RTextArea.UNDO_ACTION
-        peer.setAccelerator(KeyStroke.getKeyStroke(VK_Z, shortcutMask))
-        def apply = codeArea.textArea.undoLastAction
-      })
-      contents += new MenuItem(new Action("Redo"){
-        override lazy val peer = RTextArea getAction RTextArea.REDO_ACTION
-        peer.setAccelerator(KeyStroke.getKeyStroke(VK_Z, shortcutMask | SHIFT_MASK))
-        def apply = codeArea.textArea.redoLastAction
-      }) 
-      contents += new Separator
-      contents += new MenuItem(cutAction) 
-      contents += new MenuItem(copyAction)
-      contents += new MenuItem(pasteAction)
-      contents += new Separator
-      contents += new MenuItem(increaseIndentAction)
-      contents += new MenuItem(decreaseIndentAction)
-      contents += new Separator
-      contents += new MenuItem(selectAllAction)
-      contents += new CheckMenuItem("Find") {
-        mnemonic = Key.F
-        action = findReplaceAction
-      }
-    }
-
     contents += new Menu("View") {
       mnemonic = Key.V
-      contents += new MenuItem(increaseFontSizeAction)
-      contents += new MenuItem(decreaseFontSizeAction)
-      contents += new MenuItem(resetFontSizeAction)
-      contents += new Menu("Font") {
-        mnemonic = Key.F
-        val fontNames = codeArea.supportedFonts.map { fontName =>
-          new RadioMenuItem(fontName) {
-            selected = codeArea.textArea.getFont.getName == fontName
-            action = Action(fontName) { codeArea setFontName fontName }
-          }
-        }
-        contents ++= fontNames
-        new ButtonGroup(fontNames: _*)
-      }
-      contents += new CheckMenuItem("Show line numbers") {
-        mnemonic = Key.L
-        action = showLineNumbersAction
-      }
       contents += new Menu("Aspect Ratio") {
         contents ++= Seq(disable3DRatioItem, fixed3DRatioItem, custom3DRatioItem)
         new ButtonGroup(disable3DRatioItem,fixed3DRatioItem,custom3DRatioItem)
@@ -502,7 +468,6 @@ class App extends SimpleSwingApplication {
     }
 
     contents += new Menu("Plotting") {
-      
       mnemonic = Key.P
       contents += new Menu("Style") {
         mnemonic = Key.S
@@ -512,23 +477,6 @@ class App extends SimpleSwingApplication {
         contents ++= Seq(rb1,rb2,rb3)
         new ButtonGroup(rb1,rb2,rb3)
       }
-      contents += new CheckMenuItem("") { selected = false
-        action = new Action("Simulator Fields") 
-        		 { mnemonic = KeyEvent.VK_F; def apply = plotView.toggleSimulator(selected) }
-      }
-      contents += new CheckMenuItem("") { selected = false
-        action = new Action("Child Count") 
-        		 { mnemonic = KeyEvent.VK_C; def apply = plotView.toggleNextChild(selected) }
-      }
-      contents += new CheckMenuItem("") { selected = false
-        action = new Action("RNG Seeds") 
-        		 { mnemonic = KeyEvent.VK_R; def apply = plotView.toggleSeeds(selected) }
-      }
-    }
-    
-    contents += new Menu("Model") {
-      mnemonic = Key.S
-      contents ++= Seq(playMenuItem, stepMenuItem, stopMenuItem)
     }
 
     val bta = new RadioMenuItem("") {
@@ -537,138 +485,11 @@ class App extends SimpleSwingApplication {
       selected = true
       enableWhenStopped(this)     
     }
-    
-    object semantics {
-      val ref2015 = new RadioMenuItem("") {
-        selected = false
-        enableWhenStopped(this)
-        action = reference2015Action
-      }
-      val opt2015 = new RadioMenuItem("") {
-        selected = false
-        enableWhenStopped(this)
-        action = optimized2015Action
-      }
-      val ref2014 = new RadioMenuItem("") {
-        visible = Main.enableOldSemantics
-        selected = false
-        enableWhenStopped(this)
-        action = reference2014Action
-      }
-      val opt2014 = new RadioMenuItem("") {
-        visible = Main.enableOldSemantics
-        selected = false
-        enableWhenStopped(this)
-        action = optimized2014Action
-      }
-      val ref2013 = new RadioMenuItem("") {
-        visible = Main.enableOldSemantics
-        selected = false
-        enableWhenStopped(this)
-        action = reference2013Action
-      }
-      val opt2013 = new RadioMenuItem("") {
-        visible = Main.enableOldSemantics
-        selected = false
-        enableWhenStopped(this)
-        action = optimized2013Action
-      }
-      val ref2012 = new RadioMenuItem("") {
-        visible = Main.enableOldSemantics
-        selected = false
-        enableWhenStopped(this)
-        action = reference2012Action
-      }
-      val opt2012 = new RadioMenuItem("") {
-        visible = Main.enableOldSemantics
-        selected = false
-        enableWhenStopped(this)
-        action = optimized2012Action
-      }
-      val par2012 = new RadioMenuItem("") {
-        visible = Main.enableOldSemantics
-        selected = false
-        enableWhenStopped(this)
-        action = parallel2012Action
-      }
-      val encPWL = new RadioMenuItem("") {
-        visible = Main.enableOldSemantics
-        action = pwlHybridSolverAction
-        enableWhenStopped(this)
-        selected = false // Main.useEnclosures && 
-          //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[PWLEventEncloser] 
-      }
-      val encEVT = new RadioMenuItem("") {
-        visible = Main.enableOldSemantics
-        action = eventTreeHybridSolverAction
-        enableWhenStopped(this) 
-        selected = false // Main.useEnclosures &&
-          //enclosure.Interpreter.strategy.eventEncloser.getClass == classOf[TreeEventEncloser]
-      }
-      val enc2015 = new RadioMenuItem("") {
-        action = enclosure2015Action
-        enableWhenStopped(this) 
-        selected = false
-      }
-      val bg = new ButtonGroup(ref2013, opt2013, ref2014, opt2014, ref2015, opt2015, ref2012, opt2012, par2012, encPWL, encEVT, enc2015)
-      val ls = new CheckMenuItem("") {
-        def shouldBeEnabled = Main.defaultSemantics match { case _:S.Enclosure | _:S.Enclosure2015 => true; case _ => false }
-        action = contractionAction
-        enabledWhenStopped += (this, () => shouldBeEnabled)
-        enabled = false //Main.useEnclosures
-        selected = contraction
-        /* Enable/disable Contraction menu item depending on the chosen semantics */
-        for (b <- bg.buttons) listenTo(b) 
-        reactions += {
-          case e: ButtonClicked =>
-            enabled = shouldBeEnabled
-        }
-      }
-      val lc = new CheckMenuItem("") {
-        action = normalizeAction
-        selected = Main.extraPasses.contains("normalize")
-      }
-    }
-
-    contents += new Menu("Semantics") {
-      import semantics._
-      mnemonic = Key.S
-      contents += new Menu("Traditional") {
-        mnemonic = Key.T
-        contents += ref2015
-        contents += opt2015
-      }
-      contents += new Menu("Enclosure") {
-        mnemonic = Key.E
-        contents ++= Seq(enc2015) ++ (if (Main.enableOldSemantics) Seq(new Separator, encPWL, encEVT) else Seq()) ++ Seq(new Separator, ls)
-      }
-      if (Main.enableAllSemantics) {
-        contents += new Menu("Deprecated") {
-          visible = Main.enableOldSemantics
-          mnemonic = Key.D
-          contents ++= Seq(ref2014, opt2014, new Separator, ref2013, opt2013, new Separator, ref2012, opt2012, par2012)
-        }
-        contents ++= Seq(new Separator,lc)
-      }
-    }
-
-    // Every time when you want to use device data, check start serve Item is selected or not!
-    contents += new Menu("Devices") {
-      contents += startserverItem
-      startserverItem.selected = false
-      contents += stopserverItem
-      stopserverItem.enabled = false
-      contents += resetDeviceItem
-      resetDeviceItem.enabled = false
-      contents += serverLinkItem
-      serverLinkItem.enabled = false
-    }
 
     contents += new Menu("Help") {
       mnemonic = Key.H
       contents += new MenuItem(manualAction)
       contents += new MenuItem(aboutAction)
-      contents += new MenuItem(bugReportAction)
       contents += new MenuItem(licenseAction) 
     }
   }
@@ -706,11 +527,9 @@ class App extends SimpleSwingApplication {
     //receiver.destroy=true
     //threeDView.exit
 
-    if (!codeArea.editedSinceLastSave || codeArea.confirmContinue()) {
-      controller ! Stop
-      actor ! EXIT
-      quit
-    }
+    controller ! Stop
+    actor ! EXIT
+    quit
   }
 
   def withErrorReporting(action: => Unit): Unit = {
@@ -762,9 +581,6 @@ class App extends SimpleSwingApplication {
       }
     }
 
-  def bugReport() =
-    Desktop.getDesktop.browse(new URI("http://www.acumen-language.org/p/report-bug.html"))
-
   def IPaddress():String = {
     val localHost = InetAddress.getLocalHost
     val localIPaddress = localHost.getHostAddress
@@ -779,20 +595,13 @@ class App extends SimpleSwingApplication {
     } else if (!threeDtab.checkBoxState("matchWallClock")) {
       threeDtab.setCheckBoxState(true, "matchWallClock")
     }
-    resetDeviceItem.enabled = true
-    serverLinkItem.enabled = true
-    startserverItem.enabled = false
-    stopserverItem.enabled  = true
+    Main.webInterface.socketSend(ujson.write(ujson.Obj("event" -> "serverStarted", "link" -> (IPADDRESS + ":8000/index"))))
   }
 
   def stopServer(): Unit = {
     resetDevice()
     BuildHost.BuildHost.stop()
-    startserverItem.selected = false
-    startserverItem.enabled = true
-    stopserverItem.enabled = false
-    resetDeviceItem.enabled = false
-    serverLinkItem.enabled = false
+    Main.webInterface.socketSend(ujson.write(ujson.Obj("event" -> "serverStopped")))
   }
 
   def resetDevice(): Unit = {
@@ -812,26 +621,6 @@ class App extends SimpleSwingApplication {
   
   var state: State = Stopped
 
-  def selectMenuItemFromSemantics() {
-    Main.defaultSemantics match {
-      case S.Ref2012 => bar.semantics.ref2013.selected = true
-      case S.Opt2013 => bar.semantics.opt2013.selected = true
-      case S.Ref2013 => bar.semantics.ref2012.selected = true
-      case S.Ref2014 => bar.semantics.ref2014.selected = true
-      case S.Ref2015 => bar.semantics.ref2015.selected = true
-      case S.Opt2014 => bar.semantics.opt2014.selected = true
-      case S.Opt2015 => bar.semantics.opt2015.selected = true
-      case S.Opt2012 => bar.semantics.opt2012.selected = true
-      case _:S.Parallel2012  => bar.semantics.par2012.selected = true
-      case S.Enclosure(S.PWL, c) => contraction = c; bar.semantics.encPWL.selected = true
-      case S.Enclosure(S.EVT, c) => contraction = c; bar.semantics.encEVT.selected = true
-      case S.Enclosure2015(c)    => contraction = c; bar.semantics.enc2015.selected = true
-      case _ => /* Other semantics not selectable from the menu selected */
-    }
-    bar.semantics.ls.selected = contraction
-  }
-  selectMenuItemFromSemantics()
-
   def dumpParms() = {
     Logger.log("Using the \"" + interpreter.semantics.descr + "\" semantics.")
     if (Main.commandLineParms) {
@@ -842,23 +631,6 @@ class App extends SimpleSwingApplication {
   controller.start()
 
   listenTo(actor)
-  // disable and enable menu items
-  reactions += {
-    case st:State =>
-      playMenuItem.enabled = st match {case _:App.Playing => false; case _ => true}
-      stopMenuItem.enabled = st match {case   App.Stopped => false; case _ => true}
-      stepMenuItem.enabled = st match {case _:App.Ready   => true;  case _ => false}
-      for ((el,cond) <- enabledWhenStopped) el.enabled = st == Stopped && cond() 
-      st match {
-        case _:App.Ready =>
-          playMenuItem.text = "Run"
-          playMenuItem.action = playAction
-        case _:App.Playing =>
-          playMenuItem.text = "Pause"
-          playMenuItem.action = pauseAction
-        case _ =>
-      }
-  }
   // update console
   reactions += {
     case st: State =>
@@ -892,29 +664,25 @@ class App extends SimpleSwingApplication {
       }
   }
 
-  // FIXME: Move me into a seperate TraceTable class
-  // and move tableI out of plotter and into the new class
-  val defaultTableModel = traceTable.model
-  traceTable.listenTo(actor)
-  traceTable.reactions += {
-    case st: State =>
-      st match {
-        case Starting =>
-          traceTable.model = defaultTableModel
-        //case _:Ready if traceTable.model.isInstanceOf[TraceModel] => 
-        //  traceTable.model.asInstanceOf[TraceModel].fireTableStructureChanged()
-        case _ =>
+  /** Serializes and sends the table data as json */
+  def serializeTable (model: TraceModel) = {
+    val jsonFormat = ujson.Arr(ujson.Obj("event" -> "traceTable"))
+    val tableArr = ujson.Arr()
+    val rowArr = ujson.Arr()
+    for (i <- 0 until model.getColumnCount) {
+      rowArr.arr.append(model.getColumnName(i))
+    }
+    tableArr.arr.append(rowArr.value)
+    rowArr.arr.clear()
+    for (i <- 0 until model.getRowCount) {
+      for (j <- 0 until model.getColumnCount) {
+        rowArr.arr.append(model.getValueAt(i, j).toString)
       }
-    case plot.TraceModelReady(model) =>
-      traceTable.model = model
-      model.fireTableStructureChanged()
-    case ViewChanged(idx) =>
-      if (idx == views.TABLE_IDX && App.ui.controller.model != null) {
-        plotView.plotPanel.tableI.enabled = true
-        plotView.plotPanel.plotter ! plot.Refresh
-      } else {
-        plotView.plotPanel.tableI.enabled = false
-      }
+      tableArr.arr.append(rowArr.value)
+      rowArr.arr.clear()
+    }
+    jsonFormat.arr.append(tableArr)
+    Main.webInterface.socketSend(ujson.write(jsonFormat))
   }
 
   def confirmSave(c: java.awt.Component, f:File) = {
@@ -923,43 +691,6 @@ class App extends SimpleSwingApplication {
       " already exists.\nAre you sure you want to overwrite it?"
     JOptionPane.showConfirmDialog(c, message,
       "Really?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
-  }
-  
-  /** Exports simulation data (corresponding to the table view) to a file. */
-  def exportTable() = {
-    val fc = new FileChooser()
-    val returnVal = fc.showSaveDialog(App.ui.body)
-    if (returnVal == FileChooser.Result.Approve) {
-
-      // Hack to make sure table data is populated
-      val prev = plotView.plotPanel.tableI.enabled
-      plotView.plotPanel.tableI.enabled = true
-      plotView.plotPanel.plotter ! plot.Refresh
-      plotView.plotPanel.tableI.enabled = prev
-
-      val file = fc.selectedFile
-      if (!file.exists || confirmSave(App.ui.body.peer, file)) {
-        val model = traceTable.model
-        val out = new FileWriter(fc.selectedFile)
-        var i = 0
-        while (i < model.getColumnCount()) {
-          out.write(model.getColumnName(i) + "\t");
-          i += 1
-        }
-        out.write("\n");
-        i = 0
-        while (i < model.getRowCount) {
-          var j = 0;
-          while (j < model.getColumnCount) {
-            out.write(model.getValueAt(i, j).toString() + "\t");
-            j += 1;
-          }
-          out.write("\n");
-          i += 1;
-        }
-        out.close();
-      }
-    }
   }
   
   /** Everything that needs to be done to start a simulation. */
@@ -996,21 +727,11 @@ class App extends SimpleSwingApplication {
              e.getModifiers == java.awt.event.InputEvent.CTRL_MASK) &&
              e.getID        == java.awt.event.KeyEvent.KEY_PRESSED)
             e.getKeyCode match {
-              case VK_R      => upperButtons.bPlay.doClick ; true
-              case VK_T      => upperButtons.bStop.doClick ; true
-              case VK_G      => upperButtons.bStep.doClick ; true
               case VK_S      => codeArea.saveFile() ; true
               case VK_O      => codeArea.openFile(codeArea.currentDir) ; true
-              case VK_L      => toggleLineNumbers ; true
-              case VK_PLUS | 
-              	   VK_EQUALS => codeArea increaseFontSize ; true
-              case VK_MINUS  => codeArea decreaseFontSize ; true
-              case VK_0      => codeArea resetFontSize ; true
               case _         => false 
             }
         else e.getKeyCode match {
-          case VK_ESCAPE if codeArea.findReplaceToolBar.isVisible => 
-            toggleFindReplaceToolbar; true
           case _ => false
         }
     })
@@ -1018,7 +739,6 @@ class App extends SimpleSwingApplication {
   /* ----- initialisation ----- */
 
   actor.start
-  codeArea.listenDocument
   // Acumen console logger. Ignores TRACE and DEBUG log levels.
   Logger.attach(new Logger.Appender { def apply(instr: Logger.Instruction) {
     instr match {
@@ -1045,7 +765,7 @@ class App extends SimpleSwingApplication {
   actor.publish(ViewChanged(views.selection.index))
 
   if (Main.autoPlay)
-    upperButtons.bPlay.doClick
+    runSimulation()
 }
 
 object App {
@@ -1070,5 +790,7 @@ object App {
   case object Paused extends Ready // State when paused
 
   case class ViewChanged(idx: Int) extends Event
+  case class SemanticsItem(id: String, name: String, isEnclosure: Boolean, selected: Boolean, enabled: Boolean)
+  case class SemanticsItemSeparator(id: String = "separator")
 }
 

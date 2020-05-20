@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html" charset="utf-8" />
+  <title>Acumen 3.0</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+  <div id="loader">
+    <div>
+      <div style="display: flex; justify-content: center; height: 100px;">
+        <div class="loader-wheel"></div>
+      </div>
+      <div class="loader-text"></div>
+    </div>
+  </div>
+  <div class="navbar">
+    <div id="navbarMenu">
+      <ul>
+        <li class="navMenuItem">
+          <a class="dropbtn">File</a>
+          <div class="dropdown-content">
+            <button type="button" id="newAction">New</button>
+            <button type="button" id="openAction">Open</button>
+            <button type="button" id="saveAction">Save</button>
+            <button type="button" id="saveAsAction">Save as</button>
+            <button type="button" id="exportAction">Export Table</button>
+            <button type="button" id="recoverAction">Recover</button>
+          </div>
+        </li>
+        <li class="navMenuItem">
+          <a class="dropbtn">Edit</a>
+          <div class="dropdown-content">
+            <button type="button" id="undoAction" disabled="disabled">Undo</button>
+            <button type="button" id="redoAction" disabled="disabled">Redo</button>
+            <hr>
+            <button type="button" id="cutAction">Cut</button>
+            <button type="button" id="copyAction">Copy</button>
+            <button type="button" id="pasteAction">Paste</button>
+            <hr>
+            <button type="button" id="incIndentAction">Increase Indentation</button>
+            <button type="button" id="decIndentAction">Decrease Indentation</button>
+            <hr>
+            <button type="button" id="selectAllAction">Select All</button>
+            <label>
+              <input type="checkbox" id="showFind">
+              <span>Find</span>
+            </label>
+          </div>
+        </li>
+        <li class="navMenuItem">
+          <a class="dropbtn">View</a>
+          <div class="dropdown-content">
+            <button type="button" id="increaseFontSize">Enlarge Font</button>
+            <button type="button" id="reduceFontSize">Reduce Font</button>
+            <button type="button" id="resetFontSize">Reset Font</button>
+            <div class="vertical-nav">
+              <div style="display:flex">
+                <span style="margin-right:auto;">Font</span>
+                <span style="margin: auto 10px; color: white;">&#8250;</span>
+              </div>
+              <ul class="sub-menu" id="fontMenu"></ul>
+            </div>
+            <hr>
+            <div class="vertical-nav">
+              <div style="display:flex">
+                <span style="margin-right:auto;">Theme</span>
+                <span style="margin: auto 10px; color: white;">&#8250;</span>
+              </div>
+              <ul class="sub-menu" id="themeMenu"></ul>
+            </div>
+            <label>
+              <input type="checkbox" id="lineNumbers" checked>
+              <span>Line Numbers</span>
+            </label>
+            <button type="button" disabled="disabled">Aspect Ratio</button>
+          </div>
+        </li>
+        <li class="navMenuItem">
+          <a class="dropbtn">Plotting</a>
+          <div class="dropdown-content">
+            <div class="vertical-nav">
+              <div style="display:flex">
+                <span style="margin-right:auto;">Style</span>
+                <span style="margin: auto 10px; color: white;">&#8250;</span>
+              </div>
+              <ul class="sub-menu">
+                <li><label><input type="radio" name="style" id="plotLines" selected>Lines</label></li>
+                <li><label><input type="radio" name="style" id="plotDots">Dots</label></li>
+                <li><label><input type="radio" name="style">Both</label></li>
+              </ul>
+            </div>
+            <label>
+              <input type="checkbox" id="simulatorFields">
+              <span>Simulator Fields</span>
+            </label>
+            <label>
+              <input type="checkbox" id="childCount">
+              <span>Child Count</span>
+            </label>
+            <label>
+              <input type="checkbox" id="rngSeeds">
+              <span>RNG Seeds</span>
+            </label>
+          </div>
+        </li>
+        <li class="navMenuItem">
+          <a class="dropbtn">Model</a>
+          <div class="dropdown-content">
+            <button type="button" id="playMenuButton">Run</button>
+            <button type="button" id="pauseMenuButton" style="display: none;">Pause</button>
+            <button type="button" id="stepMenuButton">Step</button>
+            <button type="button" id="stopMenuButton" disabled="disabled">Stop</button>
+          </div>
+        </li>
+        <li class="navMenuItem">
+          <a class="dropbtn">Semantics</a>
+          <div class="dropdown-content">
+            <div class="vertical-nav">
+              <div style="display:flex">
+                <span style="margin-right:auto;">Traditional</span>
+                <span style="margin: auto 10px; color: white;">&#8250;</span>
+              </div>
+              <ul class="sub-menu" id="traditionalSemantics"></ul>
+            </div>
+            <div class="vertical-nav">
+              <div style="display:flex">
+                <span style="margin-right:auto;">Enclosure</span>
+                <span style="margin: auto 10px; color: white;">&#8250;</span>
+              </div>
+              <ul class="sub-menu" id="enclosureSemantics"></ul>
+            </div>
+            <div class="vertical-nav">
+              <div style="display:flex">
+                <span style="margin-right:auto;">Deprecated</span>
+                <span style="margin: auto 10px; color: white;">&#8250;</span>
+              </div>
+              <ul class="sub-menu" id="deprecatedSemantics"></ul>
+            </div>
+            <hr>
+            <label>
+              <input type="checkbox" id="normalization">
+              <span>Normalize (to H.A.)</span>
+            </label>
+          </div>
+        </li>
+        <li class="navMenuItem">
+          <a class="dropbtn">Devices</a>
+          <div class="dropdown-content">
+            <button type="button" id="startServer">Start Server</button>
+            <button type="button" id="stopServer" disabled="disabled">Stop Server</button>
+            <button type="button" id="resetDevice" disabled="disabled">Reset Device</button>
+            <button type="button" id="serverLink" disabled="disabled">Server Link</button>
+          </div>
+        </li>
+        <li class="navMenuItem">
+          <a class="dropbtn">Help</a>
+          <div class="dropdown-content">
+            <button type="button" disabled="disabled">Reference Manual</button>
+            <button type="button" disabled="disabled">About</button>
+            <a href="http://www.acumen-language.org/p/report-bug.html" target="_blank">Bugs</a>
+            <button type="button" disabled="disabled">License</button>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <div id="acumenTitle" style="margin: auto;">Acumen 3.0</div>
+  </div>
+  <div id="wrapper">
+    <div id="leftPane">
+      <div id="upperPane">
+        <div id="fileNameLabel">
+          <span id="fileNameLabelText">[Untitled]</span>
+        </div>
+        <div id="codePanel">
+          <div id="editor"></div>
+        </div>
+        <div id="upperBottomPane">
+          <div id="upperButtons">
+            <button id="playButton" class="tooltip fade" data-title="Run Simulation"><span
+                id="playIcon"></span></button>
+            <button id="pauseButton" class="tooltip fade" data-title="Pause simulation" style="display: none;"><span
+                id="pauseIcon"></span></button>
+            <button id="stepButton" class="tooltip fade" data-title="Compute one simulation step"><span
+                id="stepIcon"></span></button>
+            <button id="stopButton" class="tooltip fade" data-title="Stop simulation (cannot resume)" disabled><span
+                id="stopIcon"></span></button>
+          </div>
+          <div id="statusZone">
+            <span>Progress:</span>
+            <progress id="progressBar" value="0" max="100"></progress>
+          </div>
+        </div>
+      </div>
+      <div id="lowerPane">
+        <div class="tabs">
+          <button class="ctablinks active" onclick="changeCTab(event, 'consoleTab')">Console</button>
+          <button class="ctablinks" onclick="changeCTab(event, 'browserTab')">Browser</button>
+        </div>
+        <div id="consoleTab" class="ctabcontent" style="height: calc(100% - 70px); overflow: auto;">
+          <ul id="consoleAreaList"></ul>
+        </div>
+        <div id="browserTab" class="ctabcontent" style="display: none; height: calc(100% - 70px); overflow: auto;">
+          <ul id="browserAreaList"></ul>
+        </div>
+      </div>
+    </div>
+    <div id="viewsPane">
+      <div class="views">
+        <button id="plotButton" class="vtablinks active">Plot</button>
+        <button id="traceButton" class="vtablinks">Table</button>
+        <button id="threeDButton" class="vtablinks">_3D</button>
+      </div>
+      <div id="plotTab" class="vtabcontent">
+        <div style='text-align: center; display: grid; align-content: center; height: 100%; width: 100%;'><span>Plot panel not yet implemented</span></div>
+      </div>
+      <div id="traceTab" class="vtabcontent">
+        <div style="overflow: auto;">
+          <table id="traceTable"></table>
+        </div>
+      </div>
+      <div id="threeDtab" class="vtabcontent">
+        <div id="canvasPanel">
+          <div style='text-align: center; display: grid; align-content: center; height: 100%; width: 100%;'><span>3D panel not yet implemented</span></div>
+        </div>
+        <div id="threedControls">
+          <div id="threedViews">
+            <div id="threedViewControls">
+              <button><span id="defaultViewIcon"></button>
+              <button><span id="topViewIcon"></button>
+              <button><span id="frontViewIcon"></button>
+              <button><span id="rightViewIcon"></button>
+            </div>
+            <div style="display: flex; width: calc(100% / 3);">
+              <div id="scenePositions">
+                <label>Camera</label>
+                <label>
+                  <span>X:</span>
+                  <input type="text" name="camX">
+                </label>
+                <label>
+                  <span>Y:</span>
+                  <input type="text" name="camY">
+                </label>
+                <label>
+                  <span>Z:</span>
+                  <input type="text" name="camZ">
+                </label>
+              </div>
+              <div id="scenePositions">
+                <label>Look At</label>
+                <label>
+                  <span>X:</span>
+                  <input type="text" name="laX">
+                </label>
+                <label>
+                  <span>Y:</span>
+                  <input type="text" name="laY">
+                </label>
+                <label>
+                  <span>Z:</span>
+                  <input type="text" name="laZ">
+                </label>
+              </div>
+            </div>
+            <div id="sceneOptions">
+              <div style="display: flex; flex-direction: column">
+                <label>
+                  <input type="checkbox" id="showAxis">
+                  <span id="threedCheckboxText">Show Axis</span>
+                </label>
+                <label>
+                  <input type="checkbox" id="streamAnimation">
+                  <span id="threedCheckboxText">Stream Animation</span>
+                </label>
+                <label>
+                  <input type="checkbox" id="matchWallClock">
+                  <span id="threedCheckboxText">Match Wall Clock</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div id="threedTimeControls">
+            <div id="threedControlButtons">
+              <button><span id="playIcon"></button>
+              <button><span id="stopIcon"></button>
+              <button><span id="slowerIcon"></button>
+              <button><span id="fasterIcon"></button>
+            </div>
+            <div class="slidecontainer">
+              <input type="range" min="0" max="100" value="0" class="slider" id="threedProgress">
+            </div>
+            <div id="timer3D">
+              <label id="threedTimer">Time:</label>
+              <label>Speed: 1.0x</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="promptPanel" style="display: none;">
+      <div id="dialog">
+        <div class="dlg-header"><span id="dlgHeader">Warning!</span></div>
+        <div class="dlg-body">
+          <span>You have changed this file since the last time it was saved.</span>
+          <span>Please confirm your desired action.</span>
+        </div>
+        <div class="dlg-options">
+          <button type="button" id="saveAndContinue">Save and continue</button>
+          <button type="button" id="discardAndContinue">Discard and continue</button>
+          <button type="button" onclick="getResponse('cancel');">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      function changeCTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("ctabcontent");
+        for (i = 0; i < tabcontent.length; i++) {
+          tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("ctablinks");
+        for (i = 0; i < tablinks.length; i++) {
+          tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+      }
+    </script>
+    <script src="./ace-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="./acumen.js"></script>
+</body>
+
+</html>

@@ -106,11 +106,12 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
         // p.file.isEmpty.  If it is NoPosition, there is no positional
         // information and hence nothing to scroll to.
       case Message(_, m, p:EnhancedPosition) if p.file.isEmpty =>
-        val ta = ui.App.ui.codeArea.textArea
-        ta.setCaretPosition(ta.getDocument.getDefaultRootElement.getElement(p.line - 1).getStartOffset + p.column - 1)
-        ui.App.ui.codeArea.centerLineInScrollPane
-        ta.addLineHighlight(p.line - 1, new Color(255, 240, 240))
-        ta.requestFocus
+        /* Sotiris - These were all enabled! */
+        //val ta = ui.App.ui.codeArea.textArea
+        //ta.setCaretPosition(ta.getDocument.getDefaultRootElement.getElement(p.line - 1).getStartOffset + p.column - 1)
+        //ui.App.ui.codeArea.centerLineInScrollPane
+        //ta.addLineHighlight(p.line - 1, new Color(255, 240, 240))
+        //ta.requestFocus
       case _ =>
     }
   }

@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage
 import scala.actors._
 import interpreter._
 
-// Plotter actor primary resposable for plotting but also updating the trace table
+// Plotter actor primary responsible for plotting but also updating the trace table
 
 abstract sealed class PlotterAction
 case object Refresh extends PlotterAction // implies repaint
@@ -30,9 +30,6 @@ class PlotInput(val model : () => PlotModel,
   val DISABLE_THRESHOLD = 25
   @volatile var disableThreshold = DISABLE_THRESHOLD
 }
-
-case class TraceModelReady(model: TraceModel) 
-     extends swing.event.Event
 
 case class PlotReady(model: PlotModel,
                      data: PlotData,
@@ -96,7 +93,7 @@ class Plotter(tableI: TableInput, plotI: PlotInput)
       App.ui.controller.model.flush
     if (tableI.enabled) {
       val tm = tableI.model()
-      App ! TraceModelReady(tm)
+      App.ui.serializeTable(tm)
     }
     replot
   }

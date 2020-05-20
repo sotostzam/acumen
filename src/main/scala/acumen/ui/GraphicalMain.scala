@@ -22,6 +22,7 @@ import javax.swing.event.DocumentEvent
 
 import swing._
 import swing.event._
+import acumen.ui.tl.ManualBrowser
 
 object GraphicalMain extends SimpleSwingApplication {
   // Swing debugging
@@ -96,6 +97,17 @@ object GraphicalMain extends SimpleSwingApplication {
     if (Main.positionalArgs.size() > 1)
       Main.openFile = Main.checkFile(Main.positionalArgs(1))
     maybeFork(args)
+    // Open browser window
+    try { // See if Acumen is running from source (e.g. using sbt)
+      Desktop.getDesktop.open(new File(ManualBrowser.getClass.getResource("web/acumen.html").toURI))
+    }
+    catch { case _ => // See if Acumen is running from JAR, inside release directory
+      val jarPath = new File(ManualBrowser.getClass.getProtectionDomain
+        .getCodeSource.getLocation.getPath).getParentFile.getPath
+      if (Desktop.isDesktopSupported && Desktop.getDesktop.isSupported(Desktop.Action.BROWSE)) {
+        Desktop.getDesktop.open(new File(jarPath + "/web/acumen.html"))
+      }
+    }
     super.main(args)
   }
 
