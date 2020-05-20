@@ -43,6 +43,31 @@ connection.onmessage = (event) => {
           editor.setValue(obj.text, 1);
           editedSinceLastSave = false;
           break;
+        case "console":
+          if (obj.data[0] === 'separator') {
+            var toggler = document.getElementsByClassName("consoleItem");
+            for (var i = 0; i < toggler.length; i++) {
+              toggler[i].style.color = "grey";
+            }
+          }
+          var node = document.createElement("li");
+          node.className = 'consoleItem';
+          node.addEventListener("click", function () { this.style.backgroundColor = 'lightgrey'; });
+          if (obj.data[0] === 'error') {
+            var type = document.createElement("a");
+            type.style.color = 'red';
+            type.style.paddingBottom = '5px';
+            var parText = document.createTextNode('ERROR:');
+            type.appendChild(parText);
+            node.appendChild(type);
+            editor.gotoLine(parseInt(obj.data[2].split(".")[0]), parseInt(obj.data[2].split(".")[1]) - 1);
+          }
+          var par = document.createElement("a");
+          var parText = document.createTextNode(obj.data[1]);
+          par.appendChild(parText);
+          node.appendChild(par);
+          document.getElementById("consoleAreaList").appendChild(node);
+          break;
         case "progress":
           document.getElementById("progressBar").value = obj.data;
           break;

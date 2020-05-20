@@ -4,21 +4,18 @@ package tl
 
 import java.awt.Color
 import swing._
-import javax.swing.ListCellRenderer
-import javax.swing.DefaultListCellRenderer
-import javax.swing.JList
-import javax.swing.JLabel
-import java.awt.Component
 import java.awt.event.{ MouseAdapter, MouseEvent }
-import javax.swing.border.LineBorder
-import Errors.{ ParseError, PositionalAcumenError }
-import scala.util.parsing.input.{Position,NoPosition}
+import scala.util.parsing.input.Position
 import Logger._
 
 class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
 
   import Console._
-  
+
+  def serializeMessage(msgType: String, textToSend: String, location: String = null) = {
+    Main.webInterface.socketSend(ujson.write(ujson.Obj("event" -> "console", "data" -> ujson.Arr(msgType, textToSend, (if (location!=null) location else ujson.Null)))))
+  }
+
   renderer = new ListView.Renderer[(Msg, Boolean)] {
     def componentFor(l: ListView[_], isSelected: Boolean, focused: Boolean, value: (Msg, Boolean), index: Int) = {
       val messageIsOld = value._2
@@ -63,11 +60,21 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
     case StatusUpdate(before, msg, after) => listData.headOption match {
       case Some((Message(STATUS, oldMsg, _),_)) if before =>
         listData = (Message(STATUS, TextMsg(oldMsg + msg + (if (after) "..." else ""))), false) +: listData.tail
+        serializeMessage("status",oldMsg + msg + (if (after) "..." else ""))
       case _ =>
         listData = (Message(STATUS, TextMsg(msg + (if (after) "..." else ""))), false) +: listData
+        serializeMessage("status", msg + (if (after) "..." else ""))
     }
     case Separator => 
       listData = listData.map { case (msg,_) => (msg,true) }
+      listData.head._1 match {
+        case Message(STATUS, message, _) =>
+          serializeMessage("separator", message.msg) //FIXME Check if this is the message of the separator.
+          println("Separator message: " + message.msg)
+        case Message(INFO, message, _) =>
+          serializeMessage("separator", message.msg) //FIXME Check if this is the message of the separator.
+          println("Separator message: " + message.msg)
+      }
     case m:Msg =>
       listData = (m, false) +: listData
       m match {
@@ -77,6 +84,15 @@ class Console extends ListView[(Msg, Boolean /*messageIsOld*/)] {
           e.printStackTrace()
         case mesg: Message =>
           scrollToError(mesg)
+        case _ => /* noop */
+      }
+      m match {
+        case Message(ERROR, ExceptionMsg(e), pos) =>
+          serializeMessage("error", ExceptionMsg(e).msg, pos.toString())
+        case Message(INFO, message, _) =>
+          serializeMessage("info", message.msg)
+        case Message(STATUS, message, _) =>
+          serializeMessage("status", message.msg)
         case _ => /* noop */
       }
       if (m.level == ERROR) 
