@@ -47,26 +47,44 @@ connection.onmessage = (event) => {
           if (obj.data[0] === 'separator') {
             var toggler = document.getElementsByClassName("consoleItem");
             for (var i = 0; i < toggler.length; i++) {
-              toggler[i].style.color = "grey";
+              for (var child=toggler[i].firstChild; child!==null; child=child.nextSibling) {
+                child.style.color = "grey";
+              }
             }
           }
-          var node = document.createElement("li");
-          node.className = 'consoleItem';
-          node.addEventListener("click", function () { this.style.backgroundColor = 'lightgrey'; });
-          if (obj.data[0] === 'error') {
-            var type = document.createElement("a");
-            type.style.color = 'red';
-            type.style.paddingBottom = '5px';
-            var parText = document.createTextNode('ERROR:');
-            type.appendChild(parText);
-            node.appendChild(type);
-            editor.gotoLine(parseInt(obj.data[2].split(".")[0]), parseInt(obj.data[2].split(".")[1]) - 1);
+          else {
+            var node = document.createElement("li");
+            node.className = 'consoleItem';
+            node.addEventListener("click", function () {
+              let logger = document.getElementById("consoleAreaList");
+              for(var child=logger.firstChild; child!==null; child=child.nextSibling) {
+                child.style.backgroundColor = 'white';
+              }
+              this.style.backgroundColor = 'lightgrey';
+            });
+            if (obj.data[0] === 'status' && obj.data[3]) {
+              let logger = document.getElementById("consoleAreaList");
+              logger.removeChild(logger.lastChild);
+            }
+            if (obj.data[0] === 'error') {
+              var type = document.createElement("a");
+              type.style.color = 'red';
+              type.style.paddingBottom = '5px';
+              var bold = document.createElement('strong');
+              var parText = document.createTextNode('ERROR:');
+              bold.appendChild(parText);
+              type.appendChild(bold);
+              node.appendChild(type);
+              editor.gotoLine(parseInt(obj.data[2].split(".")[0]), parseInt(obj.data[2].split(".")[1]) - 1);
+              changeCTab('consoleTab');
+              document.getElementById("consoleButton").className += " active";
+            }
+            var par = document.createElement("a");
+            var parText = document.createTextNode(obj.data[1]);
+            par.appendChild(parText);
+            node.appendChild(par);
+            document.getElementById("consoleAreaList").appendChild(node);
           }
-          var par = document.createElement("a");
-          var parText = document.createTextNode(obj.data[1]);
-          par.appendChild(parText);
-          node.appendChild(par);
-          document.getElementById("consoleAreaList").appendChild(node);
           break;
         case "progress":
           document.getElementById("progressBar").value = obj.data;
@@ -355,6 +373,12 @@ window.onload = function () {
   };
   document.getElementById("stopButton").onclick = function () {
     connection.send("[" + JSON.stringify(stopAction) + "]\r");
+  };
+  document.getElementById("consoleButton").onclick = function () {
+    changeCTab('consoleTab', event);
+  };
+  document.getElementById("browserButton").onclick = function () {
+    changeCTab('browserTab', event);
   };
   document.getElementById("plotButton").onclick = function () {
     changeRTab('plotTab', event);
@@ -740,7 +764,6 @@ var traceButton = {
 }
 
 /** Other Functions */
-
 function changeRTab(tabName, evt) {
   var i, tabcontent, tablinks;
   tabcontent = document.getElementsByClassName("vtabcontent");
@@ -752,5 +775,19 @@ function changeRTab(tabName, evt) {
     tablinks[i].className = tablinks[i].className.replace(" active", "");
   }
   document.getElementById(tabName).style.display = "flex";
+  if (evt !== undefined) { evt.currentTarget.className += " active"; }
+}
+
+function changeCTab(tabName, evt) {
+  var i, tabcontent, tablinks;
+  tabcontent = document.getElementsByClassName("ctabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+  tablinks = document.getElementsByClassName("ctablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  document.getElementById(tabName).style.display = "block";
   if (evt !== undefined) { evt.currentTarget.className += " active"; }
 }

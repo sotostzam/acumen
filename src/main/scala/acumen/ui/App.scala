@@ -2,8 +2,6 @@
 package acumen
 package ui
 
-import java.net.InetAddress
-
 import tl._
 import interpreter._
 import util.System.shortcutMask
@@ -16,9 +14,10 @@ import java.awt.Toolkit
 import java.awt.event.KeyEvent
 import java.awt.event.KeyEvent._
 import java.io._
+import java.net.InetAddress
 import javax.swing._
 
-import swing.{Action, BorderPanel, BoxPanel, ButtonGroup, CheckMenuItem, Component, Dialog, Dimension, FileChooser, FlowPanel, MainFrame, Menu, MenuBar, MenuItem, Orientation, Publisher, RadioMenuItem, ScrollPane, Separator, SimpleSwingApplication, SplitPane, Swing, TabbedPane, Table}
+import swing.{Action, BorderPanel, ButtonGroup, Dialog, Dimension, FlowPanel, MainFrame, Menu, MenuBar, MenuItem, Orientation, Publisher, RadioMenuItem, ScrollPane, SimpleSwingApplication, SplitPane, Swing, TabbedPane}
 import swing.event._
 import acumen.{SemanticsImpl => S}
 import acumen.ui.threeD._
@@ -320,21 +319,6 @@ class App extends SimpleSwingApplication {
   /* 1.2 lower pane */
   val console = new tl.Console
   val filetree = new tl.FileTree
-  
-  val consolePage = new TabbedPane.Page("Console", new BorderPanel {
-    add(new ScrollPane(console), BorderPanel.Position.Center)
-  })
-  
-  val lowerPane = new BorderPanel {
-    
-    // Console / File Browser 
-    val tabs = new TabbedPane {
-      pages += consolePage
-      preferredSize = new Dimension(DEFAULT_HEIGHT / 4, preferredSize.width)
-    }
-
-    add(tabs, BorderPanel.Position.Center)
-  }
 
   /* 2 right pane */
   val plotView = new plot.PlotTab
@@ -376,11 +360,7 @@ class App extends SimpleSwingApplication {
   }
 
   /* main component */
-  val body =
-    new SplitPane(Orientation.Vertical, lowerPane, views) {
-      oneTouchExpandable = true
-      resizeWeight = 0.4
-    }
+  val body = views
 
   /* menu bar */
 
@@ -757,9 +737,7 @@ class App extends SimpleSwingApplication {
         case _ => // Ignore messages with lower Level and HypothesisReports
       }
     }))
-  console.append(Logger.Message(Logger.INFO, 
-                                Logger.TextMsg("<html>Welcome to Acumen.<br/>" +
-                                               "Please see Help/License file for licensing details.<html>")))
+  console.append(Logger.Message(Logger.INFO, Logger.TextMsg("Welcome to Acumen.\nPlease see Help/License file for licensing details.")))
 
   actor.publish(Stopped)
   actor.publish(ViewChanged(views.selection.index))

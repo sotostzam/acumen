@@ -620,17 +620,19 @@ span#fasterIcon {
 
 #consoleAreaList .consoleItem {
   float: left;
-  padding: 0px 3px;
+  padding: 1px 3px;
   display: grid;
 }
 
 #consoleAreaList .consoleItem:hover {
-  background-color: lightgray;
   cursor: pointer;
 }
 
 #consoleAreaList .consoleItem a {
   user-select: none;
+  white-space: pre-wrap;
+  font-size: 12px;
+  font-family: "Lucida Console", Monaco, monospace;
 }
 
 #browserAreaList, #browserAreaList li {

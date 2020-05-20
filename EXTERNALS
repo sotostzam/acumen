@@ -44,12 +44,6 @@ AutoComplete (2.0.2)
   Modified BSD license.
   http://fifesoft.com/rsyntaxtextarea/RSyntaxTextArea.License.txt
 
-JFreeChart (1.0.14)
-JCommon (1.0.17)
-
-  http://www.jfree.org/
-  LGPL v2.1 or later
-
 xml-apis (1.3.04)
 
   Part of XML commons
@@ -78,3 +72,9 @@ Gnome high contrast icons
   Orignal URL: http://people.freedesktop.org/~jimmac/icons/#highcontrast
   Also: http://commons.wikimedia.org/wiki/Category:GNOME_High_contrast_icons
   Licence Unclear.  Maybe LGPL
+
+Ace Editor (1.4.7)
+
+  https://github.com/ajaxorg/ace-builds
+  Licence Unclear or custom.
+  Ajax.org B.V.
