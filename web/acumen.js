@@ -47,7 +47,7 @@ connection.onmessage = (event) => {
           if (obj.data[0] === 'separator') {
             var toggler = document.getElementsByClassName("consoleItem");
             for (var i = 0; i < toggler.length; i++) {
-              for (var child=toggler[i].firstChild; child!==null; child=child.nextSibling) {
+              for (var child = toggler[i].firstChild; child !== null; child = child.nextSibling) {
                 child.style.color = "grey";
               }
             }
@@ -57,7 +57,7 @@ connection.onmessage = (event) => {
             node.className = 'consoleItem';
             node.addEventListener("click", function () {
               let logger = document.getElementById("consoleAreaList");
-              for(var child=logger.firstChild; child!==null; child=child.nextSibling) {
+              for (var child = logger.firstChild; child !== null; child = child.nextSibling) {
                 child.style.backgroundColor = 'white';
               }
               this.style.backgroundColor = 'lightgrey';
@@ -188,6 +188,102 @@ connection.onmessage = (event) => {
               rowNode.appendChild(columnNode);
             }
             table.appendChild(rowNode);
+          }
+        }
+        else if (obj[0].event === "plotter") {
+          var plotCharts = new Array();
+          switch (obj[0].type) {
+            case "doubles":
+              for (i = 1; i < obj.length; i++) {
+                plotCharts.push(new Array());
+                for (var j in obj[i].data) {
+                  plotCharts[plotCharts.length - 1].push({ x: obj[i].data[j].x, y: obj[i].data[j].y });
+                }
+              }
+              var xArray = [];
+              var yArray = [];
+              var data = [];
+              var temp = 1;                            //FIXME Possible bug in Plot.ly!
+              for (var i in plotCharts) {
+                for (var j in plotCharts[i]) {
+                  xArray.push(plotCharts[i][j].x);
+                  yArray.push(plotCharts[i][j].y);
+                }
+                var trace = {
+                  x: xArray,
+                  y: yArray,
+                  xaxis: 'x' + temp,
+                  yaxis: 'y' + temp,
+                  name: obj[temp].title,
+                  type: 'scatter',
+                  mode: 'lines'
+                };
+                data.push(trace);
+                xArray = [];
+                yArray = [];
+                temp += 1;
+              }
+              var layout = {
+                grid: { rows: data.length, columns: 1, pattern: 'independent' },
+              };
+              Plotly.newPlot(document.getElementById("plotTab"), data, layout, {responsive: true});
+              break;
+            case "discrete":
+              console.log("Not yet implemented");
+              break;
+            case "enclosure":
+              var plotTitles = [];
+              for (i = 1; i < obj.length; i++) {
+                plotTitles.push(obj[i].title);
+                for (var j in obj[i].data) {
+                  plotCharts.push(new Array());
+                  for (var k in obj[i].data[j]) {
+                    plotCharts[plotCharts.length - 1].push({ x: obj[i].data[j][k].x, y: obj[i].data[j][k].y });
+                  }
+                }
+              }
+              console.log(plotCharts[3].length);
+              var xArray = [];
+              var yArray = [];
+              var data = [];
+              var temp = 1;                            // FIXME Possible bug in Plot.ly!
+              for (var i in plotCharts) {
+                for (var j in plotCharts[i]) {
+                  xArray.push(plotCharts[i][j].x);
+                  yArray.push(plotCharts[i][j].y);
+                }
+                var trace = {};
+                if (i % 4 == 0) {                      // FIXME check input
+                  if (i >= 1) temp += 1;
+                  trace = {
+                    x: xArray,
+                    y: yArray,
+                    xaxis: 'x' + temp,
+                    yaxis: 'y' + temp,
+                    name: plotTitles[temp - 1],
+                    type: 'scatter',
+                  };
+                }
+                else {
+                  trace = {
+                    x: xArray,
+                    y: yArray,
+                    xaxis: 'x' + temp,
+                    yaxis: 'y' + temp,
+                    name: plotTitles[temp - 1],
+                    fill: 'tonexty',
+                    type: 'scatter'
+                  };
+                }
+                data.push(trace);
+                xArray = [];
+                yArray = [];
+              }
+              var layout = {
+                grid: { rows: data.length / 2, columns: 1, pattern: 'independent' },
+              };
+              Plotly.newPlot(document.getElementById("plotTab"), data, layout, {responsive: true});
+              break;
           }
         }
       }

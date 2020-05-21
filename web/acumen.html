@@ -213,9 +213,7 @@
         <button id="traceButton" class="vtablinks">Table</button>
         <button id="threeDButton" class="vtablinks">_3D</button>
       </div>
-      <div id="plotTab" class="vtabcontent">
-        <div style='text-align: center; display: grid; align-content: center; height: 100%; width: 100%;'><span>Plot panel not yet implemented</span></div>
-      </div>
+      <div id="plotTab" class="vtabcontent"></div>
       <div id="traceTab" class="vtabcontent">
         <div style="overflow: auto;">
           <table id="traceTable"></table>
@@ -228,10 +226,10 @@
         <div id="threedControls">
           <div id="threedViews">
             <div id="threedViewControls">
-              <button><span id="defaultViewIcon"></button>
-              <button><span id="topViewIcon"></button>
-              <button><span id="frontViewIcon"></button>
-              <button><span id="rightViewIcon"></button>
+              <button><span id="defaultViewIcon"></span></button>
+              <button><span id="topViewIcon"></span></button>
+              <button><span id="frontViewIcon"></span></button>
+              <button><span id="rightViewIcon"></span></button>
             </div>
             <div style="display: flex; width: calc(100% / 3);">
               <div id="scenePositions">
@@ -284,10 +282,10 @@
           </div>
           <div id="threedTimeControls">
             <div id="threedControlButtons">
-              <button><span id="playIcon"></button>
-              <button><span id="stopIcon"></button>
-              <button><span id="slowerIcon"></button>
-              <button><span id="fasterIcon"></button>
+              <button><span id="playIcon"></span></button>
+              <button><span id="stopIcon"></span></button>
+              <button><span id="slowerIcon"></span></button>
+              <button><span id="fasterIcon"></span></button>
             </div>
             <div class="slidecontainer">
               <input type="range" min="0" max="100" value="0" class="slider" id="threedProgress">
@@ -315,7 +313,9 @@
       </div>
     </div>
     <script src="./ace-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="./plotly.min.js"></script>
     <script src="./acumen.js"></script>
+  </div>
 </body>
 
 </html>

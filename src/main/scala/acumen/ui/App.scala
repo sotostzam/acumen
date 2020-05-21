@@ -125,6 +125,9 @@ class App extends SimpleSwingApplication {
           }
         case "btnAction" =>
           jsonString(0)("action").str match {
+            case "plotTab" =>
+              views.selection.index = 0
+              selectedView = viewsCollection(0)
             case "traceTab" =>
               selectedView = viewsCollection(1)
               if (selectedView.equals(viewsCollection(1)) && App.ui.controller.model != null) {
@@ -134,6 +137,9 @@ class App extends SimpleSwingApplication {
               else {
                 plotView.plotPanel.tableI.enabled = false
               }
+            case "threeDtab" =>
+              views.selection.index = 1
+              selectedView = viewsCollection(2)
           }
         case "event" =>
           jsonString(0)("event").str match {
