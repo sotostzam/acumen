@@ -126,7 +126,8 @@ class App extends SimpleSwingApplication {
         case "btnAction" =>
           jsonString(0)("action").str match {
             case "plotTab" =>
-              views.selection.index = 0
+              views.selection.index = 0                       // FIXME This should be deleted - Sotiris
+              //plotView.plotPanel.plotter ! plot.Replot      // FIXME Probably enable something like this - Sotiris
               selectedView = viewsCollection(0)
             case "traceTab" =>
               selectedView = viewsCollection(1)
@@ -643,10 +644,14 @@ class App extends SimpleSwingApplication {
         codeArea.editedSinceLastRun = false
         if (modelFinished && !threeDtab.checkBoxState("realTime")) {
           views.selectThreeDView()
+          selectedView = viewsCollection(2)
+          Main.webInterface.socketSend(ujson.write(ujson.Obj("event" -> "viewChange", "selectView" -> "threedView")))
           threeDtab.play()
         }
-      } else if (views.threeDViewSelected) {
+      } else if (selectedView.equals(viewsCollection(2))) {
         views.selectPlotView()
+        selectedView = viewsCollection(0)
+        Main.webInterface.socketSend(ujson.write(ujson.Obj("event" -> "viewChange", "selectView" -> "plotView")))
       }
   }
 

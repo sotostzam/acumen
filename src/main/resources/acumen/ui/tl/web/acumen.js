@@ -114,6 +114,40 @@ connection.onmessage = (event) => {
         if (obj[0].action === 'filetree') {
           showBrowser(obj[1]);
         }
+        else if (obj[0].action === 'threedAllFrames') {
+          // TODO This is the json object containing all the frames.
+          let complete3Dframes = obj;
+          /** ---------- How to enable the 3D Tab ----------
+           * In order for the 3DTab to work you need to follow these steps:
+           * - Enable the canvas in acumen.html file
+           * - Import both the babylon library and your custom babylon js file
+           * - Send from this js file to babylon's through a method. For example: load3Ddataset(obj);
+           *
+           * ---------- How the dataset is constructed ----------
+           * Each frame contains the objects, which are represented as followed:
+           * 1. type:
+           *    - newObj   (for new objects)
+           *    - tranform (for transformations of existing objects)
+           * 2. data:
+           *    - id
+           *    - name
+           *    - path
+           *    - angle
+           *    - position
+           *    - color
+           *    - coordinates
+           *    - position
+           *    - size
+           *    - text
+           *    - transparency
+           *    - height
+           *
+           * The last object of the json file is the camera options, which are represented as followed:
+           * 1. type: "camera"
+           * 2. position
+           * 3. lookAtPosition
+          */
+        }
         else if (obj[0].action === 'populateSemantics') {
           for (i = 1; i < obj.length; i++) {
             var group;
@@ -477,6 +511,7 @@ window.onload = function () {
     changeCTab('browserTab', event);
   };
   document.getElementById("plotButton").onclick = function () {
+    connection.send("[" + JSON.stringify(plotButton) + "]\r");
     changeRTab('plotTab', event);
   };
   document.getElementById("traceButton").onclick = function () {
@@ -484,6 +519,7 @@ window.onload = function () {
     changeRTab('traceTab', event);
   };
   document.getElementById("threeDButton").onclick = function () {
+    connection.send("[" + JSON.stringify(threeDButton) + "]\r");
     changeRTab('threeDtab', event);
   };
   document.getElementById("editor").addEventListener('input', function () {
@@ -854,9 +890,19 @@ var exitAction = {
   action: 'Exit'
 }
 
+var plotButton = {
+  type: 'btnAction',
+  action: 'plotTab'
+}
+
 var traceButton = {
   type: 'btnAction',
   action: 'traceTab'
+}
+
+var threeDButton = {
+  type: 'btnAction',
+  action: 'threeDtab'
 }
 
 /** Other Functions */

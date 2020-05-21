@@ -337,6 +337,7 @@ case class ThreeDTab (appModel: Controller) extends BorderPanel {
         }
         /* The frame start from 0, and end up at the last index of buffer */
         lastFrame = appModel.threeDData._3DData.size - 1
+        // TODO _3DDataBuffer holds the complete frame set - Sotiris
       }
       threeDView.viewStateMachine("deleteAllObjects")
       threeDView.objects.clear()

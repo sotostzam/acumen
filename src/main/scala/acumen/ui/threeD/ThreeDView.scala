@@ -504,8 +504,30 @@ class ThreeDView extends JPanel {
 
   def zoomin()  = camera.increaseFOV(0.02f)
   def zoomout() = camera.decreaseFOV(0.02f)
- 
-  
+
+  /** transformView Copy to export data to babylon format - Needs more tests */
+  def transformToBabylon(position: Array[Double], rotation: Array[Double],
+                         cameraOffset: Array[Double], lookAtOffset: Array[Double]): Array[Double] = {
+    val newPos = convXYZtoSV(-position(0).toFloat + cameraOffset(0).toFloat,
+      -position(2).toFloat + cameraOffset(1).toFloat,
+      -position(1).toFloat + cameraOffset(2).toFloat)
+
+    val offRotation = Array(rotation.apply(0) - lookAtOffset(0).toFloat,
+      rotation.apply(1) - lookAtOffset(2).toFloat,
+      rotation.apply(2) - lookAtOffset(1).toFloat)
+
+    val (x0, y0, z0) = convSVtoXYZ(transform(camera.getPosition, lookAtPoint))
+
+    lookAtPoint.set(-offRotation(0).toFloat, -offRotation(2).toFloat, -offRotation(1).toFloat)
+    val (x1, y1, z1) = convSVtoXYZ(transform(newPos, lookAtPoint))
+    val (r1, theta1, phi1) = convXYZtoSPH((x1, y1, z1))
+    if (y0> 0 && y1 < 0 && x0 > 0 && abs(x0) < 0.1 ) {
+      cFlip = !cFlip
+    }
+    val (x11, y11, z11)  = convSPHtoXYZ((r1, theta1, phi1))
+    val returnArray = Array(x11, y11, z11)
+    returnArray
+  }
   
   def transformView(position: Array[Double], rotation: Array[Double],
                     cameraOffset: Array[Double], lookAtOffset: Array[Double]) = {
@@ -861,16 +883,20 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
       // 3d objects within the current frame
       if (_3DDataBuffer.contains(currentFrame)
         && _3DDataBuffer(currentFrame) != null) {
-        for ((objectKey, valueList) <- _3DDataBuffer(currentFrame))
+        for ((objectKey, valueList) <- _3DDataBuffer(currentFrame)) {
           if (!app.objects.contains(objectKey))
             matchingObject(objectKey, valueList, currentFrame)
-          else if (app.objects.contains(objectKey)  // this should not happen
+          else if (app.objects.contains(objectKey) // this should not happen
             && app.world.getObjectByName(app.objects(objectKey)._1.getName) == null
             && app.staticWorld.getObjectByName(app.objects(objectKey)._1.getName) == null) {
             app.objects -= objectKey
             matchingObject(objectKey, valueList, currentFrame)
           } else
             transformObject(objectKey, valueList, app.lastRenderFrame, currentFrame)
+
+          renderedFrame.arr.append(renderedObject.value)
+          renderedObject.arr.clear()
+        }
 
         // delete the object not in this frame
         for ((objectKey, o) <- app.objects)
@@ -882,15 +908,24 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
             val lookAtPosition = app.lookAtPoint.toArray.map(_.toDouble)
             app.transformView((_3DView(currentFrame)._1, _3DView(app.lastRenderFrame)._1).zipped.map(_ - _),
                               (_3DView(currentFrame)._2, _3DView(app.lastRenderFrame)._2).zipped.map(_ - _),
-                              cameraPosition, lookAtPosition)                            
+                              cameraPosition, lookAtPosition)
+            val truePos = ((_3DView(currentFrame)._1, _3DView(app.lastRenderFrame)._1).zipped.map(_ - _)).zip(cameraPosition).map { case (x, y) => - x + y }.toBuffer
+            val trueLookAtPos = (_3DView(currentFrame)._2, _3DView(app.lastRenderFrame)._2).zipped.map(_ - _).zip(lookAtPosition).map { case (x, y) => x - y }.toBuffer
+            val testPos = app.transformToBabylon((_3DView(currentFrame)._1, _3DView(app.lastRenderFrame)._1).zipped.map(_ - _),
+              (_3DView(currentFrame)._2, _3DView(app.lastRenderFrame)._2).zipped.map(_ - _),
+              cameraPosition, lookAtPosition)
+            renderedFrame.arr.append(ujson.Obj("type" -> "camera","position" -> testPos.toBuffer,"lookAtPosition" -> trueLookAtPos))
           } else {
             app.transformView(_3DView(currentFrame)._1, _3DView(currentFrame)._2,
               Array(0,0,0), Array(0,0,0))
             cameraInitialized = true
+            renderedFrame.arr.append(ujson.Obj("type" -> "camera","position" -> _3DView(currentFrame)._1.toBuffer,"lookAtPosition" -> _3DView(currentFrame)._2.toBuffer))
           }
         }
         app.lastRenderFrame = currentFrame
         app.viewStateMachine("renderCurrentObjects")
+        threedFrames.arr.append(renderedFrame.value)
+        renderedFrame.arr.clear()
       }
     }
   }
@@ -950,6 +985,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
        if (name == "OBJ")  valueList(5) else " ",
        if (valueList.size == 7) valueList(5) else valueList(6),
        if (name == "Triangle") valueList(5) else 0.4)
+
+    val dataObj = ujson.Obj("id" -> objectKey.toString(), "name" -> name, "position" -> position.toBuffer, "size" -> size.toBuffer, "color" -> color.toBuffer, "angle" -> angle.toBuffer,
+      "transparency" -> transparency, "text" -> (if (text != " ") text else ujson.Null),
+      "path" -> (if (path != " ") path else ujson.Null), "coordinates" -> coordinates, "height" -> height)
+    renderedObject.arr.append(ujson.Obj("type" -> "transform", "data" -> dataObj))
 
     // get the object need to transform
     var transObject: Object3D = app.objects(objectKey)._1
@@ -1246,6 +1286,11 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
         if (valueList.size == 7) valueList(5) else valueList(6),
         if (name == "Triangle") valueList(5) else 0.4)
 
+    val dataObj = ujson.Obj("id" -> c.toString(), "name" -> name, "position" -> position.toBuffer, "size" -> size.toBuffer, "color" -> color.toBuffer, "angle" -> angle.toBuffer,
+      "transparency" -> transparency, "text" -> (if (text != " ") text else ujson.Null),
+      "path" -> (if (path != " ") path else ujson.Null), "coordinates" -> coordinates, "height" -> height)
+    renderedObject.arr.append(ujson.Obj("type" -> "newObj", "data" -> dataObj))
+
     val newObject =
       if (checkResizeable(size) && checkResizeable(angle)) name match {
         case "Box" =>
@@ -1376,6 +1421,10 @@ class _3DDisplay(app: ThreeDView, slider: Slider3D, playSpeed: Double,
     val anaglyphObject = app.objectsCopy(obKey)._1
     anaglyphObject
   }
+
+  val threedFrames = ujson.Arr(ujson.Obj("action" -> "threedAllFrames"))
+  val renderedFrame = ujson.Arr()
+  val renderedObject = ujson.Arr()
 
   def act() {
     loopWhile(!destroy) {

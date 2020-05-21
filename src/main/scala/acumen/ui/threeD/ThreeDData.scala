@@ -367,8 +367,11 @@ class ThreeDData extends Publisher {
       _3DTimeTag += frameNumber -> Canonical.getTime(s)
     if (!_3DData.contains(frameNumber))
       _3DData += frameNumber -> null
-    if (_3DData(frameNumber) != null && !App.ui.views.threeDViewSelected)
+    if (_3DData(frameNumber) != null && !App.ui.selectedView.equals(App.ui.viewsCollection(2))) {
+      App.ui.selectedView = App.ui.viewsCollection(2)
+      Main.webInterface.socketSend(ujson.write(ujson.Obj("event" -> "viewChange", "selectView" -> "threedView")))
       App.ui.views.selectThreeDView()
+    }
     frameNumber += 1
   }
 
