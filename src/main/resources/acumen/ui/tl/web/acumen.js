@@ -253,7 +253,7 @@ connection.onmessage = (event) => {
                   yArray.push(plotCharts[i][j].y);
                 }
                 var trace = {};
-                if (i % 4 == 0) {                      // FIXME check input
+                if (i % 2 == 0) {                      // FIXME check input
                   if (i >= 1) temp += 1;
                   trace = {
                     x: xArray,

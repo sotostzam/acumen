@@ -279,7 +279,7 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
       ax goTo (time(math.min(s+p.values.size, time.size-1)), 0)
       axes += ax
       val plotArr = ujson.Arr()                                                        // Holds doubles and discrete path
-      val enclosurePlots = Array(ujson.Arr(), ujson.Arr(), ujson.Arr(), ujson.Arr())   // Holds enclosure path
+      val enclosurePlots = Array(ujson.Arr(), ujson.Arr())                             // Holds enclosure path
       val plotTitle = tb.getPlotTitle(p.column)                                        // Holds each graph's title
 
       p match {
@@ -296,10 +296,11 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
           polys += line
 
         case p:PlotDiscrete =>
+          println("Using discrete plotting")
           if (!plotType.equals("discrete")) plotType = "discrete"
           val lines = new DiscretePathBuilder
                     
-          for (f <- 0 until p.values.size; val frame = s + f) {
+          for (f <- p.values.indices; val frame = s + f) {
             p.values(f) match {
               case VLit(GStr(str)) => lines.add(time(frame),Set(str))
               case VLit(e:GDiscreteEnclosure[_]) => lines.add(time(frame),e.range.map(_.toString))
@@ -317,10 +318,13 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
             if (time(frame-1) != time(frame))
                 prevTime = time(frame-1)
             path.add(prevTime, time(frame), p.values(f))
-            enclosurePlots(0).arr.append(ujson.Obj("x" -> time(frame), "y" -> p.values(f).hiRight))   // Create the first line of the enclosure
-            enclosurePlots(1).arr.append(ujson.Obj("x" -> time(frame), "y" -> p.values(f).hiLeft))    // Create the second line of the enclosure
-            enclosurePlots(2).arr.append(ujson.Obj("x" -> time(frame), "y" -> p.values(f).loRight))   // Create the third line of the enclosure
-            enclosurePlots(3).arr.append(ujson.Obj("x" -> time(frame), "y" -> p.values(f).loLeft))    // Create the forth line of the enclosure
+            if (f % 2 == 0) {
+              /** We are creating 4 points to represent the box. */
+              enclosurePlots(0).arr.append(ujson.Obj("x" -> prevTime, "y" -> p.values(f).hiLeft))        // First point:  Upper left
+              enclosurePlots(0).arr.append(ujson.Obj("x" -> time(frame), "y" -> p.values(f).hiRight))    // Second point: Upper right
+              enclosurePlots(1).arr.append(ujson.Obj("x" -> prevTime, "y" -> p.values(f).loLeft))        // Third point:  Lower left
+              enclosurePlots(1).arr.append(ujson.Obj("x" -> time(frame), "y" -> p.values(f).loRight))    // Fourth point: Lower right
+            }
           }
           polys += path
       }
@@ -330,7 +334,7 @@ class PlotData(parms: PlotParms = null, tb:PlotModel = null, val disableThreshol
       }
       // Check type of current element and construct json object
       if (plotType.equals("enclosure")) {
-        jsonFormat.arr.append(ujson.Obj("title" -> plotTitle, "data" -> ujson.Arr(enclosurePlots(0).value, enclosurePlots(1).value, enclosurePlots(2).value, enclosurePlots(3).value)))
+        jsonFormat.arr.append(ujson.Obj("title" -> plotTitle, "data" -> ujson.Arr(enclosurePlots(0).value, enclosurePlots(1).value)))
       }
       else {
         jsonFormat.arr.append(ujson.Obj("title" -> plotTitle, "data" -> plotArr.value))
