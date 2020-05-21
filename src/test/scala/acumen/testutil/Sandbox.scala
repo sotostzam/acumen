@@ -48,23 +48,4 @@ object Sandbox extends App with acumen.interpreters.enclosure.Extract { // with 
 
   def rename(e: UnivariateAffineEnclosure, oldName: String, newName: String) =
     UnivariateAffineEnclosure(e.domain, e.components.map { case (k, v) => ((if (k == oldName) newName else k), v) })
-
-  val plotter = new acumen.ui.plot.EnclosurePlotter
-  val dom = Interval(0, 0.5)
-  //  val dom = Interval(0, 0.5)
-  val y = UnivariateAffineEnclosure(dom, Map("x" ->
-    UnivariateAffineScalarEnclosure(dom, Interval.zero, Interval.one)))
-  val z = UnivariateAffineEnclosure(dom, Map("x" ->
-    UnivariateAffineScalarEnclosure(dom, Interval.one, Interval(-1))))
-  //    val y = UnivariateAffineEnclosure(dom, Map("x" ->
-  //    UnivariateAffineScalarEnclosure(dom, Interval(-1,0), Interval(0.5,1))))
-  //    val z = UnivariateAffineEnclosure(dom, Map("x" ->
-  //    UnivariateAffineScalarEnclosure(dom, Interval(0,1), Interval(-1,-0.5))))
-  val yuz = y union z
-
-  plotter.plot("f")(null)(Seq(
-    rename(y, "x", "y"),
-    rename(z, "x", "z"),
-    rename(yuz, "x", "yuz")))
-
 }
