@@ -141,8 +141,8 @@ object Errors {
         pprint(cn) + "."
     }
   }
-  case class IndexOutOfBounds(i: Int) extends PositionalAcumenError {
-    override def mesg = "Index " + i + " is out of bounds."
+  case class IndexOutOfBounds(i: List[Int]) extends PositionalAcumenError {
+    override def mesg = "Index " + (if (i.length == 1) i.head else i.mkString("(",",",")")) + " is out of bounds."
   }
   case class CantIndex() extends PositionalAcumenError {
     override def mesg = "Can only index into vectors."

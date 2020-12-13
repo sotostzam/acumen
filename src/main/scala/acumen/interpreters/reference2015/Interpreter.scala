@@ -490,6 +490,8 @@ object Interpreter extends acumen.CStoreInterpreter {
         val v = lhs match {
           case VVector(u) =>
             updateMultipleEntries(VVector(u), indexes, vts)
+          case _ =>
+            throw CantIndex()
         }
         val ResolvedDot(rId, _, rN) = resolveDot(dot, multipleIndexUpdates.head.env, st)
         (rId, rN, v)

@@ -509,7 +509,7 @@ object Common {
   def evalIndexOp[A](e: Value[A], i: List[Value[A]]) : Value[A] = {
     def lookup(i: Int, l: List[Value[A]]): Value[A] =
       try { l(i) } 
-      catch { case _: IndexOutOfBoundsException => throw IndexOutOfBounds(i) }
+      catch { case _: IndexOutOfBoundsException => throw IndexOutOfBounds(List(i)) }
     e match {
       case VVector(l) => i match {
         case VLit(GInt(idx)) :: Nil => lookup(idx, l)

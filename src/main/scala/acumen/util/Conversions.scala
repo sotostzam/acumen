@@ -178,7 +178,8 @@ object Conversions {
       case VVector(l) =>
         var result = VVector(l)
         for( (i,vt) <- is zip vts){
-          result = updateEntry(result,i,vt)
+          try { result = updateEntry(result,i,vt) }
+          catch { case _: IndexOutOfBoundsException => throw IndexOutOfBounds(i) }
         }
         result
       case _ => throw CantIndex() }
