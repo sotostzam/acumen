@@ -217,7 +217,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     parseArgs(args.toList)
     if (defaultSemantics == null)
-      defaultSemantics = SemanticsImpl("")
+      defaultSemantics = SemanticsImpl("reference")
     if (displayHelp == "normal") {
       println("Usage: acumen [options] [command]")
       println("")
