@@ -644,6 +644,16 @@ object BindingTimeAnalysis {
               (r._1,  x :: r._2)
             else
               (Equation(lhs, rhs)::r._1, r._2)
+          case Index(e1, _) =>
+            e1 match {
+              case Var(n) =>
+                if (!hashMap.contains(Var(n))) {
+                  (r._1,  x :: r._2)
+                } else
+                  (Equation(lhs, rhs)::r._1, r._2)
+              case _ =>
+                (Equation(lhs, rhs) :: r._1, r._2)
+            }
           case Dot(_, _) => (r._1, x:: r._2)
           case _         => (Equation(lhs, rhs) :: r._1, r._2)
         }
