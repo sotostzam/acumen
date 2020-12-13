@@ -1,0 +1,188 @@
+model Tile(x,y,z,s,h,col) =
+initially
+  _3D = (Box center = (x, y, z) size=(s,s,h) color=col rotation=(0,0,0))
+
+model Environment() = 
+initially
+  rewards = ones(10,10) * -1,
+  state = "init_outter"
+always
+  match state with [
+    "init_outter" ->
+      // Initialize outter boundaries
+      foreach i in 0:(length(rewards)-1) do (
+        rewards(i,0) += -10,
+        rewards(i,9) += -10),
+      foreach i in 1:(length(rewards)-2) do (
+        rewards(0,i) += -10,
+        rewards(9,i) += -10),
+      state += "init_inner"
+  | "init_inner" ->
+      // Initialize inner boundaries
+      rewards(2,1)+=-10, rewards(5,1)+=-10, rewards(2,2)+=-10, rewards(4,2)+=-10, rewards(5,2)+=-10,
+      rewards(6,2)+=-10, rewards(7,2)+=-10, rewards(2,3)+=-10, rewards(4,3)+=-10, rewards(7,3)+=-10,
+      rewards(2,4)+=-10, rewards(2,5)+=-10, rewards(4,5)+=-10, rewards(6,5)+=-10, rewards(7,5)+=-10,
+      rewards(4,6)+=-10, rewards(6,6)+=-10, rewards(1,7)+=-10, rewards(2,7)+=-10, rewards(3,7)+=-10, 
+      rewards(4,7)+=-10, rewards(6,7)+=-10, rewards(8,7)+=-10, rewards(6,8)+=-10,
+      state += "init_targ"
+  | "init_targ" ->
+      // Initialize initial and goal positions
+      rewards(2,9)+=-1,
+      rewards(4,0)+=100,
+      state += "create"
+  | "create" ->
+      // Draw 3D Objects
+      foreach i in 0:(length(rewards)-1) do
+        foreach j in 0:(length(rewards(i))-1) do
+          if rewards(i,j)==-10 then
+            create Tile(i,j,0,1,1,black)
+          else if rewards(i,j)==100 then
+            create Tile(i,j,-0.45,1,0.1,green)
+          else
+            create Tile(i,j,-0.45,1,0.1,white),
+          state+="persist" 
+  | "persist" -> ]
+
+model Agent(initial_pos, moves) =
+initially
+  pos = initial_pos,
+  moves_left = moves,
+  reward = 0,
+  action = "standby",
+  _3D = ()
+always
+  match action with [
+    "left"    -> pos(0) += pos(0) - 1, action += "standby"
+  | "up"      -> pos(1) += pos(1) + 1, action += "standby"
+  | "right"   -> pos(0) += pos(0) + 1, action += "standby"
+  | "down"    -> pos(1) += pos(1) - 1, action += "standby"
+  | "reset"   -> pos += initial_pos, reward += 0,
+                 moves_left = moves, action += "standby"
+  | "standby" ->
+  ],
+  _3D = (Sphere center=(pos(0), pos(1), 0) size=0.4 color=red rotation=(0,0,0))
+
+model Main(simulator) =
+initially
+  /* Q-Learning parameters */
+  LEARNING_RATE = 0.05,        // How big or small step to make each iteration
+  DISCOUNT      = 0.95,        // How much value future rewards over current rewards
+  EPISODES      = 250,         // Maximum number of episodes to run
+  PENALTY       = -10,         // Penalty for going off limits
+  epsilon       = 1,           // Epsilon greedy strategy factor (exploration rate)
+
+  /* Algorithm loop variables */
+  qtable         = zeros(10,10,4),  // Q-table with size States * Actionspace
+  action         = -1,              // Best move computed for the agent
+  episode        = 1,               // Variable indicating episodes ellapsed
+  success_times  = 0,               // Times the agent reached the goal
+  best_score     = 0,               // Best reward achieved by the agent so far
+  phase          = "init",          // Current phase: "scout" or "action"
+  explore_factor = rand(),          // Variable to match a random action
+
+  /* Model instances instantiation */
+  env = create Environment(),
+  agent = create Agent((2,9), 200),
+  t=0, t'=0,                         // Timer instantiation
+  period = 0.001,                    // How fast/slow should each move happen
+  _3D = (),_3DView = ((1,-3,25),(1,4.5,0))
+always
+  t'=1,
+  if t > period then
+    match phase with [
+      "init"  -> 
+        // Initial phase run once
+        simulator.endTime += 300,
+        phase += "scout"
+        
+    | "scout" ->
+        // Evaluate next move, either explore or exploit (?-greedy policy)
+        if explore_factor < epsilon then
+          action += argrand(qtable(agent.pos(0), agent.pos(1)))  // Exploration move
+        else
+          action += argmax(qtable(agent.pos(0), agent.pos(1))),  // Exploitation move
+        explore_factor += rand(),
+        phase += "action"
+                    
+    | "action" ->
+        // Agent's reset conditions
+        if env.rewards(agent.pos(0), agent.pos(1)) == 100 || agent.moves_left == 0 then
+          // Reduce epsilon factor
+          if epsilon > 0.01 then
+            epsilon += epsilon * 97 / 100
+          noelse,
+          // Increment successfull times
+          if env.rewards(agent.pos(0), agent.pos(1)) == 100 then
+            success_times += success_times + 1
+          noelse,
+          // Check if current reward is also best score
+          if episode == 1 || agent.reward > best_score then
+            best_score += agent.reward
+          noelse,
+          // Check if max episodes value is reached otherwise advance an episode
+          if episode == EPISODES then
+            simulator.endTime += simulator.time
+          else
+            episode += episode+1,
+          agent.action += "reset"
+        else
+          match action with [
+            0 ->
+              // Move agent left or found left boundary
+              if agent.pos(0) > 0 && env.rewards(agent.pos(0)-1, agent.pos(1)) <> -10 then
+                qtable(agent.pos(0), agent.pos(1), action) += qtable(agent.pos(0), agent.pos(1), action) + LEARNING_RATE * (env.rewards(agent.pos(0)-1, agent.pos(1)) + DISCOUNT * max(qtable(agent.pos(0)-1, agent.pos(1))) - qtable(agent.pos(0), agent.pos(1), action)),
+                agent.reward += agent.reward + env.rewards(agent.pos(0)-1, agent.pos(1)),
+                agent.action += "left"
+              else (
+                qtable(agent.pos(0), agent.pos(1), action) += qtable(agent.pos(0), agent.pos(1), action) + LEARNING_RATE * (PENALTY + DISCOUNT * max(qtable(agent.pos(0), agent.pos(1))) - qtable(agent.pos(0), agent.pos(1), action)),
+                agent.reward += agent.reward + PENALTY)
+          | 1 ->
+              // Move agent up or found upper boundary
+              if agent.pos(1) < length(qtable(agent.pos(0)))-1 && env.rewards(agent.pos(0), agent.pos(1)+1) <> -10 then
+                qtable(agent.pos(0), agent.pos(1), action) += qtable(agent.pos(0), agent.pos(1), action) + LEARNING_RATE * (env.rewards(agent.pos(0), agent.pos(1)+1) + DISCOUNT * max(qtable(agent.pos(0), agent.pos(1)+1)) - qtable(agent.pos(0), agent.pos(1), action)),
+                agent.reward += agent.reward + env.rewards(agent.pos(0), agent.pos(1)+1),
+                agent.action += "up"
+              else (
+                qtable(agent.pos(0), agent.pos(1), action) += qtable(agent.pos(0), agent.pos(1), action) + LEARNING_RATE * (PENALTY + DISCOUNT * max(qtable(agent.pos(0), agent.pos(1))) - qtable(agent.pos(0), agent.pos(1), action)),
+                agent.reward += agent.reward + PENALTY)
+          | 2 ->
+              // Move agent right or found right boundary
+              if agent.pos(0) < length(qtable(agent.pos(0)))-1 && env.rewards(agent.pos(0)+1, agent.pos(1)) <> -10 then
+                qtable(agent.pos(0), agent.pos(1), action) += qtable(agent.pos(0), agent.pos(1), action) + LEARNING_RATE * (env.rewards(agent.pos(0)+1, agent.pos(1)) + DISCOUNT * max(qtable(agent.pos(0)+1, agent.pos(1))) - qtable(agent.pos(0), agent.pos(1), action)),
+                agent.reward += agent.reward + env.rewards(agent.pos(0)+1, agent.pos(1)),
+                agent.action += "right"
+              else (
+                qtable(agent.pos(0), agent.pos(1), action) += qtable(agent.pos(0), agent.pos(1), action) + LEARNING_RATE * (PENALTY + DISCOUNT * max(qtable(agent.pos(0), agent.pos(1))) - qtable(agent.pos(0), agent.pos(1), action)),
+                agent.reward += agent.reward + PENALTY)
+          | 3 ->
+              // Move agent down or found down boundary
+              if agent.pos(1) > 0 && env.rewards(agent.pos(0), agent.pos(1)-1) <> -10 then
+                qtable(agent.pos(0), agent.pos(1), action) += qtable(agent.pos(0), agent.pos(1), action) + LEARNING_RATE * (env.rewards(agent.pos(0), agent.pos(1)-1) + DISCOUNT * max(qtable(agent.pos(0), agent.pos(1)-1)) - qtable(agent.pos(0), agent.pos(1), action)),
+                agent.reward += agent.reward + env.rewards(agent.pos(0), agent.pos(1)-1),
+                agent.action += "down"
+              else (
+                qtable(agent.pos(0), agent.pos(1), action) += qtable(agent.pos(0), agent.pos(1), action) + LEARNING_RATE * (PENALTY + DISCOUNT * max(qtable(agent.pos(0), agent.pos(1))) - qtable(agent.pos(0), agent.pos(1), action)),
+                agent.reward += agent.reward + PENALTY)
+          ],
+          agent.moves_left += agent.moves_left - 1,
+          phase += "scout"
+    ],
+    t+=0
+  noelse,
+  _3D = (Text center=(-8,10,2.5)    size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="Episode:",
+         Text center=(-5,10,2.5)    size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=episode,
+         Text center=(-4,10,2.5)    size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="(of",
+         Text center=(-3.2,10,2.5)  size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=EPISODES,
+         Text center=(-2.3,10,2.5)  size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=")",
+         Text center=(-8,10,1.5)    size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="Moves left:",
+         Text center=(-5,10,1.5)    size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=agent.moves_left,
+         Text center=(-8,10,0.5)    size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="Reward:",
+         Text center=(-5,10,0.5)    size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=agent.reward,
+         Text center=(-8,10,-0.5)   size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="Best reward:",
+         Text center=(-5,10,-0.5)   size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=best_score,
+         Text center=(-8,10,-1.5)   size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="Success rate:",
+         Text center=(-5,10,-1.5)   size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=format("%.1f", 100 * success_times / episode),
+         Text center=(-3.8,10,-1.5) size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="%",
+         Text center=(-8,10,-2.5)   size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="Explore rate:",
+         Text center=(-5.0,10,-2.5) size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=format("%.1f", epsilon*100),
+         Text center=(-3.8,10,-2.5) size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="%")

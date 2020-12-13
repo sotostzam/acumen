@@ -1,0 +1,105 @@
+model Agent(x) =
+initially
+  posx=x,
+  reset_pos=x,
+  new_state=x,
+  reward=0,
+  action = "standby",
+  _3D = ()
+always
+  match action with [
+    "left"    ->   posx += posx - 1,  action += "standby"
+  | "right"   ->   posx += posx + 1,  action += "standby"
+  | "goal"    ->   posx += reset_pos, action += "standby", new_state += reset_pos
+  | "standby" ->
+  ],
+  _3D = (Sphere center=(posx,0,0) size=0.3 color=red rotation=(0,0,0))
+
+model Main(simulator) =
+initially
+  t=0, t'=0,                            // Timer variables
+  
+  LEARNING_RATE = 0.05,                 // How big or small step to make each iteration
+  DISCOUNT = 0.95,                      // How much value future rewards over current rewards
+  GOAL = 7,                             // Goal position
+  PENALTY = -10,                        // Off-limits penalty reward
+  
+  rewards=(-1,-1,-1,-1,-1,-1,-1,100),   // Reward table
+  qtable = zeros(8,2),                  // Q-Table: states * actions
+  
+  agent = create Agent(2),              // Agent object creation
+  best_reward = -50000,                 // Best reward achieved so far
+  best_reward_times = 0,                // How many times goal found using the best reward
+  
+  _3DView = ((3.5,-4,10),(3.5,0,0)),    // Viewpoint (CameraPos and LookAtPos)
+  _3D= ()
+always
+  t'=1,
+  if t>0.1 then
+    /* Agent found goal */
+    if agent.posx == GOAL && rewards(agent.posx) == 100 then
+      agent.action += "goal"
+    /* Agent moves left */
+    else if qtable(agent.posx, 0) >= qtable(agent.posx, 1) then
+      if agent.posx > 0 then
+        agent.new_state += agent.posx - 1,
+        if qtable(agent.new_state-1, 0) > qtable(agent.new_state-1, 1) then
+          qtable(agent.posx, 0) += qtable(agent.posx, 0) + LEARNING_RATE * (rewards(agent.new_state-1) + DISCOUNT * qtable(agent.new_state-1, 0) - qtable(agent.posx, 0))
+        else
+          qtable(agent.posx, 0) += qtable(agent.posx, 0) + LEARNING_RATE * (rewards(agent.new_state-1) + DISCOUNT * qtable(agent.new_state-1, 1) - qtable(agent.posx, 0)),
+        agent.action += "left",
+        agent.reward += agent.reward + rewards(agent.new_state-1)
+      else
+        qtable(agent.posx, 0) += qtable(agent.posx, 0) + LEARNING_RATE * (PENALTY + DISCOUNT * qtable(agent.posx, 0) - qtable(agent.posx, 1))
+    /* Agent moves right */
+    else (
+      if agent.posx < length(qtable)-1 then
+        agent.new_state += agent.posx + 1,
+        if qtable(agent.new_state+1, 0) > qtable(agent.new_state+1, 1) then
+          qtable(agent.posx, 1) += qtable(agent.posx, 1) + LEARNING_RATE * (rewards(agent.new_state+1) + DISCOUNT * qtable(agent.new_state+1, 0) - qtable(agent.posx, 1))
+        else
+          qtable(agent.posx, 1) += qtable(agent.posx, 1) + LEARNING_RATE * (rewards(agent.new_state+1) + DISCOUNT * qtable(agent.new_state+1, 1) - qtable(agent.posx, 1))
+      noelse,
+      agent.action += "right",
+      agent.reward += agent.reward + rewards(agent.new_state+1)
+    ),
+
+    /* Reset Agent after finding goal position */
+    if agent.posx == GOAL then
+      if agent.reward > best_reward then
+        best_reward += agent.reward,
+        best_reward_times += 0
+      else if agent.reward == best_reward then
+        best_reward_times += best_reward_times + 1
+      noelse,
+      agent.reward += 0,
+      simulator.endTime += simulator.endTime + 5
+    noelse,
+  
+    t+=0
+  noelse,
+  if best_reward_times == 10 then
+    simulator.endTime += simulator.time
+  noelse,
+  _3D = (Box center = (0.0,0,-0.2) size=(0.95,0.95,0.1) color=black rotation=(0,0,0),
+         Box center = (1.0,0,-0.2) size=(0.95,0.95,0.1) color=black rotation=(0,0,0),
+         Box center = (2.0,0,-0.2) size=(0.95,0.95,0.1) color=black rotation=(0,0,0),
+         Box center = (3.0,0,-0.2) size=(0.95,0.95,0.1) color=black rotation=(0,0,0),
+         Box center = (4.0,0,-0.2) size=(0.95,0.95,0.1) color=black rotation=(0,0,0),
+         Box center = (5.0,0,-0.2) size=(0.95,0.95,0.1) color=black rotation=(0,0,0),
+         Box center = (6.0,0,-0.2) size=(0.95,0.95,0.1) color=black rotation=(0,0,0),
+         Box center = (7.0,0,-0.2) size=(0.95,0.95,0.1) color=green rotation=(0,0,0),
+         
+         Text center=(-8,10,4) size=1 color=black rotation=(0,0,0) coordinates = "camera" content="Best reward:",
+         Text center=(-2,10,4) size=1 color=black rotation=(0,0,0) coordinates = "camera" content=best_reward,
+         Text center=(-8,10,3) size=0.7 color=black rotation=(0,0,0) coordinates = "camera" content="Times found best:",
+         Text center=(-2,10,3) size=0.7 color=black rotation=(0,0,0) coordinates = "camera" content=best_reward_times,
+
+         Text center=(-8,10,-2.5)    size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="Agent's position:" ,
+         Text center=(-3.5,10,-2.5)  size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=agent.posx,
+         Text center=(-8,10,-3.25)   size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="Current reward:",
+         Text center=(-3.5,10,-3.25) size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=agent.reward,
+         Text center=(-8,10,-4)      size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="Current Q (Left):",
+         Text center=(-3.5,10,-4)    size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=qtable(agent.posx, 0),
+         Text center=(-8,10,-4.75)   size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content="Current Q (Right):",
+         Text center=(-3.5,10,-4.75) size=0.5 color=black rotation=(0,0,0) coordinates = "camera" content=qtable(agent.posx, 1))
