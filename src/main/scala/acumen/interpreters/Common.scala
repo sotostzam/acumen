@@ -14,6 +14,7 @@ import reflect.runtime.universe.TypeTag
 import enclosure2015.Common._
 import acumen.interpreters.enclosure.Interval
 import scala.util.parsing.input.{Position,Positional,NoPosition,OffsetPosition}
+import scala.util.Random
 //
 // Common stuff to CStore Interpreters
 //
@@ -391,6 +392,11 @@ object Common {
   def unaryVectorOp[A](op:String, u:List[Value[A]]) : Value[A] = {
     lazy val du = extractDoubles(u)
     op match {
+      case "max" => VLit(GDouble(du.max))
+      case "min" => VLit(GDouble(du.min))
+      case "argmax" => VLit(GInt(du.zipWithIndex.maxBy(_._1)._2))
+      case "argmin" => VLit(GInt(du.zipWithIndex.minBy(_._1)._2))
+      case "argrand" => val rd = new Random; VLit(GInt(rd.nextInt(u.length)))
       case "length" => VLit(GInt(u.length))
       case "norm" => VLit(GDouble(math.sqrt((du map (d => d*d)).sum)))
       case "-" => binScalarVectorOp("*", GInt(-1), u)
